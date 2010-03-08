@@ -1,0 +1,7 @@
+All files in ths folder can be used for free for private use, 
+for commercial use only with an valid License of Embedded Builder.
+Copying is permitted withoud special permission.
+
+Alle Dateien in diesem Ordner könne für private Zwecke frei verwendet werden,
+für kommerielle Zwecke nur mit einer gültigen Lizenz des Embedded Builder.
+Kopien sind nur mit spezieller Erlaubnis gestattet.

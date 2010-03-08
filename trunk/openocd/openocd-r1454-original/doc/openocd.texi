@@ -1,0 +1,3933 @@
+\input texinfo	@c -*-texinfo-*-
+@c %**start of header
+@setfilename openocd.info
+@settitle Open On-Chip Debugger (OpenOCD)
+@dircategory Development
+@direntry
+@paragraphindent 0
+* OpenOCD: (openocd).      Open On-Chip Debugger.
+@end direntry
+@c %**end of header
+
+@include version.texi
+
+@copying
+
+@itemize @bullet
+@item Copyright @copyright{} 2008 The OpenOCD Project
+@item Copyright @copyright{} 2007-2008 Spencer Oliver @email{spen@@spen-soft.co.uk}
+@item Copyright @copyright{} 2008 Oyvind Harboe @email{oyvind.harboe@@zylin.com}
+@item Copyright @copyright{} 2008 Duane Ellis @email{openocd@@duaneellis.com}
+@end itemize
+
+@quotation
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.2 or
+any later version published by the Free Software Foundation; with no
+Invariant Sections, with no Front-Cover Texts, and with no Back-Cover
+Texts.  A copy of the license is included in the section entitled ``GNU
+Free Documentation License''.
+@end quotation
+@end copying
+
+@titlepage
+@title Open On-Chip Debugger (OpenOCD)
+@subtitle Edition @value{EDITION} for OpenOCD version @value{VERSION}
+@subtitle @value{UPDATED}
+@page
+@vskip 0pt plus 1filll
+@insertcopying
+@end titlepage
+
+@summarycontents
+@contents
+
+@node Top, About, , (dir)
+@top OpenOCD
+
+This manual documents edition @value{EDITION} of the Open On-Chip Debugger
+(OpenOCD) version @value{VERSION}, @value{UPDATED}.
+
+@insertcopying
+
+@menu
+* About::                            About OpenOCD
+* Developers::                       OpenOCD Developers
+* Building::                         Building OpenOCD
+* JTAG Hardware Dongles::            JTAG Hardware Dongles
+* Running::                          Running OpenOCD
+* Simple Configuration Files::       Simple Configuration Files
+* Config File Guidelines::           Config File Guidelines
+* About JIM-Tcl::                    About JIM-Tcl
+* Daemon Configuration::             Daemon Configuration
+* Interface - Dongle Configuration:: Interface - Dongle Configuration
+* Reset Configuration::              Reset Configuration
+* Tap Creation::                     Tap Creation
+* Target Configuration::             Target Configuration
+* Flash Configuration::              Flash Configuration
+* General Commands::                 General Commands
+* JTAG Commands::                    JTAG Commands
+* Sample Scripts::                   Sample Target Scripts
+* TFTP::                             TFTP
+* GDB and OpenOCD::                  Using GDB and OpenOCD
+* Tcl Scripting API::                Tcl Scripting API
+* Upgrading::                        Deprecated/Removed Commands
+* Target Library::                   Target Library
+* FAQ::                              Frequently Asked Questions
+* Tcl Crash Course::                 Tcl Crash Course
+* License::                          GNU Free Documentation License
+@comment DO NOT use the plain word ``Index'', reason: CYGWIN filename
+@comment case issue with ``Index.html'' and ``index.html''
+@comment Occurs when creating ``--html --no-split'' output
+@comment This fix is based on: http://sourceware.org/ml/binutils/2006-05/msg00215.html
+* OpenOCD Index::                    Main Index
+@end menu
+
+@node About
+@unnumbered About
+@cindex about
+
+The Open On-Chip Debugger (OpenOCD) aims to provide debugging,
+in-system programming and boundary-scan testing for embedded target
+devices.
+
+@b{JTAG:} OpenOCD uses a ``hardware interface dongle'' to communicate
+with the JTAG (IEEE 1149.1) compliant taps on your target board.
+
+@b{Dongles:} OpenOCD currently supports many types of hardware dongles: USB
+based, parallel port based, and other standalone boxes that run
+OpenOCD internally. See the section titled: @xref{JTAG Hardware Dongles}.
+
+@b{GDB Debug:} It allows ARM7 (ARM7TDMI and ARM720t), ARM9 (ARM920T,
+ARM922T, ARM926EJ--S, ARM966E--S), XScale (PXA25x, IXP42x) and
+Cortex-M3 (Luminary Stellaris LM3 and ST STM32) based cores to be
+debugged via the GDB protocol.
+
+@b{Flash Programing:} Flash writing is supported for external CFI
+compatible flashes (Intel and AMD/Spansion command set) and several
+internal flashes (LPC2000, AT91SAM7, STR7x, STR9x, LM3, and
+STM32x). Preliminary support for using the LPC3180's NAND flash
+controller is included.
+
+@node Developers
+@chapter Developers
+@cindex developers
+
+OpenOCD was created by Dominic Rath as part of a diploma thesis written at the
+University of Applied Sciences Augsburg (@uref{http://www.fh-augsburg.de}).
+Others interested in improving the state of free and open debug and testing technology
+are welcome to participate.
+
+Other developers have contributed support for additional targets and flashes as well
+as numerous bugfixes and enhancements. See the AUTHORS file for regular contributors. 
+
+The main OpenOCD web site is available at @uref{http://openocd.berlios.de/web/}.
+
+@section Coding Style
+@cindex Coding Style
+
+The following rules try to describe formatting and naming conventions that should be
+followed to make the whole OpenOCD code look more consistent. The ultimate goal of
+coding style should be readability, and these rules may be ignored for a particular
+(small) piece of code if that makes it more readable.
+
+@subsection Formatting rules:
+@itemize @bullet
+@item remove any trailing white space
+@item use TAB characters for indentation, not spaces
+@item displayed TAB width is 4 characters
+@item make sure NOT to use DOS '\r\n' line feeds
+@item do not add more than 2 empty lines to source files
+@item do not add trailing empty lines to source files
+@item do not use C++ style comments (//)
+@item lines may be reasonably wide - there's no anachronistic 80 characters limit
+@end itemize
+
+@subsection Naming rules:
+@itemize @bullet
+@item identifiers use lower-case letters only
+@item identifiers consisting of multiple words use underline characters between consecutive words
+@item macros use upper-case letters only
+@item structure names shall be appended with '_s'
+@item typedefs shall be appended with '_t'
+@end itemize
+
+@subsection Function calls:
+@itemize @bullet
+@item function calls have no space between the functions name and the parameter
+list: my_func(param1, param2, ...)
+@end itemize
+
+@node Building
+@chapter Building
+@cindex building OpenOCD
+
+@section Pre-Built Tools
+If you are interested in getting actual work done rather than building
+OpenOCD, then check if your interface supplier provides binaries for
+you. Chances are that that binary is from some SVN version that is more
+stable than SVN trunk where bleeding edge development takes place.
+
+@section Packagers Please Read!
+
+You are a @b{PACKAGER} of OpenOCD if you
+
+@enumerate
+@item @b{Sell dongles} and include pre-built binaries
+@item @b{Supply tools} i.e.: A complete development solution
+@item @b{Supply IDEs} like Eclipse, or RHIDE, etc.
+@item @b{Build packages} i.e.: RPM files, or DEB files for a Linux Distro
+@end enumerate
+
+As a @b{PACKAGER} - you are at the top of the food chain. You solve
+problems for downstream users. What you fix or solve - solves hundreds
+if not thousands of user questions. If something does not work for you
+please let us know. That said, would also like you to follow a few
+suggestions:
+
+@enumerate
+@item @b{Always build with printer ports enabled.}
+@item @b{Try to use LIBFTDI + LIBUSB where possible. You cover more bases.}
+@end enumerate
+
+@itemize @bullet
+@item @b{Why YES to LIBFTDI + LIBUSB?}
+@itemize @bullet
+@item @b{LESS} work - libusb perhaps already there
+@item @b{LESS} work - identical code, multiple platforms
+@item @b{MORE} dongles are supported
+@item @b{MORE} platforms are supported
+@item @b{MORE} complete solution
+@end itemize
+@item @b{Why not LIBFTDI + LIBUSB} (i.e.: ftd2xx instead)?
+@itemize @bullet
+@item @b{LESS} speed - some say it is slower
+@item @b{LESS} complex to distribute (external dependencies)
+@end itemize
+@end itemize
+
+@section Building From Source
+
+You can download the current SVN version with an SVN client of your choice from the
+following repositories:
+
+ @uref{svn://svn.berlios.de/openocd/trunk}
+
+or
+
+ @uref{http://svn.berlios.de/svnroot/repos/openocd/trunk}
+
+Using the SVN command line client, you can use the following command to fetch the
+latest version (make sure there is no (non-svn) directory called "openocd" in the
+current directory):
+
+@example
+ svn checkout svn://svn.berlios.de/openocd/trunk openocd
+@end example
+
+Building OpenOCD requires a recent version of the GNU autotools (autoconf >= 2.59 and automake >= 1.9).
+For building on Windows,
+you have to use Cygwin. Make sure that your @env{PATH} environment variable contains no
+other locations with Unix utils (like UnxUtils) - these can't handle the Cygwin
+paths, resulting in obscure dependency errors (This is an observation I've gathered
+from the logs of one user - correct me if I'm wrong).
+
+You further need the appropriate driver files, if you want to build support for
+a FTDI FT2232 based interface:
+
+@itemize @bullet
+@item @b{ftdi2232} libftdi (@uref{http://www.intra2net.com/opensource/ftdi/})
+@item @b{ftd2xx} libftd2xx (@uref{http://www.ftdichip.com/Drivers/D2XX.htm})
+@item When using the Amontec JTAGkey, you have to get the drivers from the Amontec
+homepage (@uref{http://www.amontec.com}), as the JTAGkey uses a non-standard VID/PID. 
+@end itemize
+
+libftdi is supported under Windows. Do not use versions earlier than 0.14.
+
+In general, the D2XX driver provides superior performance (several times as fast),
+but has the draw-back of being binary-only - though that isn't that bad, as it isn't
+a kernel module, only a user space library.
+
+To build OpenOCD (on both Linux and Cygwin), use the following commands:
+
+@example
+ ./bootstrap 
+@end example
+
+Bootstrap generates the configure script, and prepares building on your system.
+
+@example
+ ./configure [options, see below]
+@end example
+
+Configure generates the Makefiles used to build OpenOCD.
+
+@example
+ make 
+ make install
+@end example
+
+Make builds OpenOCD, and places the final executable in ./src/, the last step, ``make install'' is optional.
+
+The configure script takes several options, specifying which JTAG interfaces
+should be included (among other things):
+
+@itemize @bullet
+@item
+@option{--enable-parport} - Enable building the PC parallel port driver.
+@item
+@option{--enable-parport_ppdev} - Enable use of ppdev (/dev/parportN) for parport.
+@item
+@option{--enable-parport_giveio} - Enable use of giveio for parport instead of ioperm.
+@item
+@option{--enable-amtjtagaccel} - Enable building the Amontec JTAG-Accelerator driver.
+@item
+@option{--enable-ecosboard} - Enable building support for eCosBoard based JTAG debugger.
+@item
+@option{--enable-ioutil} - Enable ioutil functions - useful for standalone OpenOCD implementations.
+@item
+@option{--enable-httpd} - Enable builtin httpd server - useful for standalone OpenOCD implementations.
+@item
+@option{--enable-ep93xx} - Enable building support for EP93xx based SBCs.
+@item
+@option{--enable-at91rm9200} - Enable building support for AT91RM9200 based SBCs.
+@item
+@option{--enable-gw16012} - Enable building support for the Gateworks GW16012 JTAG programmer.
+@item
+@option{--enable-ft2232_ftd2xx} - Numerous USB type ARM JTAG dongles use the FT2232C chip from this FTDICHIP.COM chip (closed source).
+@item
+@option{--enable-ft2232_libftdi} - An open source (free) alternative to FTDICHIP.COM ftd2xx solution (Linux, MacOS, Cygwin).
+@item
+@option{--with-ftd2xx-win32-zipdir=PATH} - If using FTDICHIP.COM ft2232c, point at the directory where the Win32 FTDICHIP.COM 'CDM' driver zip file was unpacked.
+@item
+@option{--with-ftd2xx-linux-tardir=PATH} - Linux only. Equivalent of @option{--with-ftd2xx-win32-zipdir}, where you unpacked the TAR.GZ file.
+@item
+@option{--with-ftd2xx-lib=shared|static} - Linux only. Default: static. Specifies how the FTDICHIP.COM libftd2xx driver should be linked. Note: 'static' only works in conjunction with @option{--with-ftd2xx-linux-tardir}. The 'shared' value is supported (12/26/2008), however you must manually install the required header files and shared libraries in an appropriate place. This uses ``libusb'' internally.
+@item
+@option{--enable-presto_libftdi} - Enable building support for ASIX Presto programmer using the libftdi driver.
+@item
+@option{--enable-presto_ftd2xx} - Enable building support for ASIX Presto programmer using the FTD2XX driver.
+@item
+@option{--enable-usbprog} - Enable building support for the USBprog JTAG programmer.
+@item
+@option{--enable-oocd_trace} - Enable building support for the OpenOCD+trace ETM capture device.
+@item
+@option{--enable-jlink} - Enable building support for the Segger J-Link JTAG programmer.
+@item
+@option{--enable-vsllink} - Enable building support for the Versaloon-Link JTAG programmer.
+@item
+@option{--enable-rlink} - Enable building support for the Raisonance RLink JTAG programmer.
+@item
+@option{--enable-arm-jtag-ew} - Enable building support for the Olimex ARM-JTAG-EW programmer.
+@item
+@option{--enable-dummy} - Enable building the dummy port driver.
+@end itemize
+
+@section Parallel Port Dongles
+
+If you want to access the parallel port using the PPDEV interface you have to specify
+both the @option{--enable-parport} AND the @option{--enable-parport_ppdev} option since
+the @option{--enable-parport_ppdev} option actually is an option to the parport driver
+(see @uref{http://forum.sparkfun.com/viewtopic.php?t=3795} for more info).
+
+The same is true for the @option{--enable-parport_giveio} option, you have to
+use both the @option{--enable-parport} AND the @option{--enable-parport_giveio} option if you want to use giveio instead of ioperm parallel port access method.
+
+@section FT2232C Based USB Dongles 
+
+There are 2 methods of using the FTD2232, either (1) using the
+FTDICHIP.COM closed source driver, or (2) the open (and free) driver
+libftdi. Some claim the (closed) FTDICHIP.COM solution is faster.
+
+The FTDICHIP drivers come as either a (win32) ZIP file, or a (Linux)
+TAR.GZ file. You must unpack them ``some where'' convient. As of this
+writing (12/26/2008) FTDICHIP does not supply means to install these
+files ``in an appropriate place'' As a result, there are two
+``./configure'' options that help. 
+
+Below is an example build process:
+
+1) Check out the latest version of ``openocd'' from SVN.
+
+2) Download & unpack either the Windows or Linux FTD2xx drivers
+    (@uref{http://www.ftdichip.com/Drivers/D2XX.htm}).
+
+@example
+   /home/duane/ftd2xx.win32    => the Cygwin/Win32 ZIP file contents.
+   /home/duane/libftd2xx0.4.16 => the Linux TAR.GZ file contents.
+@end example
+
+3) Configure with these options:
+
+@example
+Cygwin FTDICHIP solution:
+   ./configure --prefix=/home/duane/mytools \
+               --enable-ft2232_ftd2xx \
+               --with-ftd2xx-win32-zipdir=/home/duane/ftd2xx.win32
+
+Linux FTDICHIP solution:
+   ./configure --prefix=/home/duane/mytools \
+               --enable-ft2232_ftd2xx \
+               --with-ft2xx-linux-tardir=/home/duane/libftd2xx0.4.16
+
+Cygwin/Linux LIBFTDI solution:
+    Assumes: 
+    1a) For Windows: The Windows port of LIBUSB is in place.
+    1b) For Linux: libusb has been built/installed and is in place.
+
+    2) And libftdi has been built and installed
+    Note: libftdi - relies upon libusb.
+
+    ./configure --prefix=/home/duane/mytools \
+                --enable-ft2232_libftdi
+       
+@end example
+
+4) Then just type ``make'', and perhaps ``make install''.
+
+
+@section Miscellaneous Configure Options
+
+@itemize @bullet
+@item
+@option{--disable-option-checking} - Ignore unrecognized @option{--enable} and @option{--with} options.
+@item
+@option{--enable-gccwarnings} - Enable extra gcc warnings during build.
+Default is enabled.
+@item
+@option{--enable-release} - Enable building of an OpenOCD release, generally
+this is for developers. It simply omits the svn version string when the
+openocd @option{-v} is executed.
+@end itemize
+
+@node JTAG Hardware Dongles
+@chapter JTAG Hardware Dongles
+@cindex dongles
+@cindex FTDI
+@cindex wiggler
+@cindex zy1000
+@cindex printer port
+@cindex USB Adapter
+@cindex rtck
+
+Defined: @b{dongle}: A small device that plugins into a computer and serves as
+an adapter .... [snip]
+
+In the OpenOCD case, this generally refers to @b{a small adapater} one
+attaches to your computer via USB or the Parallel Printer Port.  The
+execption being the Zylin ZY1000 which is a small box you attach via
+an ethernet cable. The Zylin ZY1000 has the advantage that it does not
+require any drivers to be installed on the developer PC. It also has
+a built in web interface. It supports RTCK/RCLK or adaptive clocking
+and has a built in relay to power cycle targets remotely.
+
+
+@section Choosing a Dongle
+
+There are three things you should keep in mind when choosing a dongle. 
+
+@enumerate 
+@item @b{Voltage} What voltage is your target? 1.8, 2.8, 3.3, or 5V? Does your dongle support it?
+@item @b{Connection} Printer Ports - Does your computer have one?
+@item @b{Connection} Is that long printer bit-bang cable practical? 
+@item @b{RTCK} Do you require RTCK? Also known as ``adaptive clocking'' 
+@end enumerate
+
+@section Stand alone Systems
+
+@b{ZY1000} See: @url{http://www.zylin.com/zy1000.html} Technically, not a
+dongle, but a standalone box. The ZY1000 has the advantage that it does
+not require any drivers installed on the developer PC. It also has
+a built in web interface. It supports RTCK/RCLK or adaptive clocking
+and has a built in relay to power cycle targets remotely.
+
+@section USB FT2232 Based
+
+There are many USB JTAG dongles on the market, many of them are based
+on a chip from ``Future Technology Devices International'' (FTDI)
+known as the FTDI FT2232.
+
+See: @url{http://www.ftdichip.com} or @url{http://www.ftdichip.com/Products/FT2232H.htm}
+
+As of 28/Nov/2008, the following are supported:
+
+@itemize @bullet
+@item @b{usbjtag}
+@* Link @url{http://www.hs-augsburg.de/~hhoegl/proj/usbjtag/usbjtag.html}
+@item @b{jtagkey}
+@* See: @url{http://www.amontec.com/jtagkey.shtml}
+@item @b{oocdlink}
+@* See: @url{http://www.oocdlink.com} By Joern Kaipf
+@item @b{signalyzer}
+@* See: @url{http://www.signalyzer.com}
+@item @b{evb_lm3s811}
+@* See: @url{http://www.luminarymicro.com} - The Luminary Micro Stellaris LM3S811 eval board has an FTD2232C chip built in.
+@item @b{olimex-jtag}
+@* See: @url{http://www.olimex.com}
+@item @b{flyswatter}
+@* See: @url{http://www.tincantools.com}
+@item @b{turtelizer2}
+@* See: @url{http://www.ethernut.de}, or @url{http://www.ethernut.de/en/hardware/turtelizer/index.html}
+@item @b{comstick}
+@* Link: @url{http://www.hitex.com/index.php?id=383}
+@item @b{stm32stick}
+@* Link @url{http://www.hitex.com/stm32-stick}
+@item @b{axm0432_jtag}
+@* Axiom AXM-0432 Link @url{http://www.axman.com}
+@end itemize
+
+@section USB JLINK based
+There are several OEM versions of the Segger @b{JLINK} adapter. It is
+an example of a micro controller based JTAG adapter, it uses an
+AT91SAM764 internally.
+
+@itemize @bullet
+@item @b{ATMEL SAMICE} Only works with ATMEL chips!
+@* Link: @url{http://www.atmel.com/dyn/products/tools_card.asp?tool_id=3892}
+@item @b{SEGGER JLINK}
+@* Link: @url{http://www.segger.com/jlink.html}
+@item @b{IAR J-Link}
+@* Link: @url{http://www.iar.com/website1/1.0.1.0/369/1/index.php}
+@end itemize
+
+@section USB RLINK based
+Raisonance has an adapter called @b{RLink}.  It exists in a stripped-down form on the STM32 Primer, permanently attached to the JTAG lines.  It also exists on the STM32 Primer2, but that is wired for SWD and not JTAG, thus not supported.
+
+@itemize @bullet
+@item @b{Raisonance RLink}
+@* Link: @url{http://www.raisonance.com/products/RLink.php}
+@item @b{STM32 Primer}
+@* Link: @url{http://www.stm32circle.com/resources/stm32primer.php}
+@item @b{STM32 Primer2}
+@* Link: @url{http://www.stm32circle.com/resources/stm32primer2.php}
+@end itemize
+
+@section USB Other
+@itemize @bullet
+@item @b{USBprog}
+@* Link: @url{http://www.embedded-projects.net/usbprog} - which uses an Atmel MEGA32 and a UBN9604
+
+@item @b{USB - Presto} 
+@* Link: @url{http://tools.asix.net/prg_presto.htm}
+
+@item @b{Versaloon-Link}
+@* Link: @url{http://www.simonqian.com/en/Versaloon}
+
+@item @b{ARM-JTAG-EW}
+@* Link: @url{http://www.olimex.com/dev/arm-jtag-ew.html}
+@end itemize
+
+@section IBM PC Parallel Printer Port Based
+
+The two well known ``JTAG Parallel Ports'' cables are the Xilnx DLC5
+and the MacGraigor Wiggler. There are many clones and variations of
+these on the market.
+
+@itemize @bullet
+
+@item @b{Wiggler} - There are many clones of this.
+@* Link: @url{http://www.macraigor.com/wiggler.htm}
+
+@item @b{DLC5} - From XILINX - There are many clones of this
+@* Link: Search the web for: ``XILINX DLC5'' - it is no longer
+produced, PDF schematics are easily found and it is easy to make.
+
+@item @b{Amontec - JTAG Accelerator}
+@* Link: @url{http://www.amontec.com/jtag_accelerator.shtml}
+
+@item @b{GW16402}
+@* Link: @url{http://www.gateworks.com/products/avila_accessories/gw16042.php}
+
+@item @b{Wiggler2}
+@* Link: @url{http://www.ccac.rwth-aachen.de/~michaels/index.php/hardware/armjtag}
+
+@item @b{Wiggler_ntrst_inverted}
+@* Yet another variation - See the source code, src/jtag/parport.c
+
+@item @b{old_amt_wiggler}
+@* Unknown - probably not on the market today
+
+@item @b{arm-jtag}
+@* Link: Most likely @url{http://www.olimex.com/dev/arm-jtag.html} [another wiggler clone]
+
+@item @b{chameleon}
+@* Link: @url{http://www.amontec.com/chameleon.shtml}
+
+@item @b{Triton}
+@* Unknown.
+
+@item @b{Lattice}
+@* ispDownload from Lattice Semiconductor @url{http://www.latticesemi.com/lit/docs/devtools/dlcable.pdf}
+
+@item @b{flashlink}
+@* From ST Microsystems, link:
+@url{http://www.st.com/stonline/products/literature/um/7889.pdf}
+Title: FlashLINK JTAG programing cable for PSD and uPSD
+
+@end itemize
+
+@section Other...
+@itemize @bullet
+
+@item @b{ep93xx}
+@* An EP93xx based Linux machine using the GPIO pins directly.
+
+@item @b{at91rm9200}
+@* Like the EP93xx - but an ATMEL AT91RM9200 based solution using the GPIO pins on the chip.
+
+@end itemize
+
+@node Running
+@chapter Running
+@cindex running OpenOCD
+@cindex --configfile
+@cindex --debug_level
+@cindex --logfile
+@cindex --search
+
+The @option{--help} option shows:
+@verbatim
+bash$ openocd --help
+
+--help       | -h       display this help
+--version    | -v       display OpenOCD version
+--file       | -f       use configuration file <name>
+--search     | -s       dir to search for config files and scripts
+--debug      | -d       set debug level <0-3>
+--log_output | -l       redirect log output to file <name>
+--command    | -c       run <command>
+--pipe       | -p       use pipes when talking to gdb
+@end verbatim
+
+By default OpenOCD reads the file configuration file ``openocd.cfg''
+in the current directory.  To specify a different (or multiple)
+configuration file, you can use the ``-f'' option. For example:
+
+@example
+  openocd -f config1.cfg -f config2.cfg -f config3.cfg
+@end example
+
+Once started, OpenOCD runs as a daemon, waiting for connections from
+clients (Telnet, GDB, Other).
+
+If you are having problems, you can enable internal debug messages via
+the ``-d'' option.
+
+Also it is possible to interleave commands w/config scripts using the
+@option{-c} command line switch.
+
+To enable debug output (when reporting problems or working on OpenOCD
+itself), use the @option{-d} command line switch. This sets the
+@option{debug_level} to "3", outputting the most information,
+including debug messages. The default setting is "2", outputting only
+informational messages, warnings and errors. You can also change this
+setting from within a telnet or gdb session using @option{debug_level
+<n>} @xref{debug_level}.
+
+You can redirect all output from the daemon to a file using the
+@option{-l <logfile>} switch.
+
+Search paths for config/script files can be added to OpenOCD by using
+the @option{-s <search>} switch. The current directory and the OpenOCD
+target library is in the search path by default.
+
+For details on the @option{-p} option. @xref{Connecting to GDB}.
+
+Note! OpenOCD will launch the GDB & telnet server even if it can not
+establish a connection with the target. In general, it is possible for
+the JTAG controller to be unresponsive until the target is set up
+correctly via e.g. GDB monitor commands in a GDB init script.
+
+@node Simple Configuration Files
+@chapter Simple Configuration Files
+@cindex configuration
+
+@section Outline
+There are 4 basic ways of ``configurating'' OpenOCD to run, they are:
+
+@enumerate
+@item A small openocd.cfg file which ``sources'' other configuration files
+@item A monolithic openocd.cfg file
+@item Many -f filename options on the command line
+@item Your Mixed Solution
+@end enumerate
+
+@section Small configuration file method
+
+This is the preferred method. It is simple and works well for many
+people. The developers of OpenOCD would encourage you to use this
+method. If you create a new configuration please email new
+configurations to the development list.
+
+Here is an example of an openocd.cfg file for an ATMEL at91sam7x256
+
+@example
+source [find interface/signalyzer.cfg]
+
+# Change the default telnet port...
+telnet_port 4444
+# GDB connects here
+gdb_port 3333
+# GDB can also flash my flash!
+gdb_memory_map enable
+gdb_flash_program enable
+
+source [find target/sam7x256.cfg]
+@end example
+
+There are many example configuration scripts you can work with. You
+should look in the directory: @t{$(INSTALLDIR)/lib/openocd}. You
+should find:
+
+@enumerate
+@item @b{board} - eval board level configurations
+@item @b{interface} - specific dongle configurations
+@item @b{target} - the target chips
+@item @b{tcl} - helper scripts 
+@item @b{xscale} - things specific to the xscale.
+@end enumerate
+
+Look first in the ``boards'' area, then the ``targets'' area. Often a board
+configuration is a good example to work from.
+
+@section Many -f filename options
+Some believe this is a wonderful solution, others find it painful.
+
+You can use a series of ``-f filename'' options on the command line,
+OpenOCD will read each filename in sequence, for example:
+
+@example
+        openocd -f file1.cfg -f file2.cfg -f file2.cfg
+@end example
+
+You can also intermix various commands with the ``-c'' command line
+option.
+
+@section Monolithic file
+The ``Monolithic File'' dispenses with all ``source'' statements and
+puts everything in one self contained (monolithic) file. This is not
+encouraged. 
+
+Please try to ``source'' various files or use the multiple -f
+technique.
+
+@section Advice for you
+Often, one uses a ``mixed approach''. Where possible, please try to
+``source'' common things, and if needed cut/paste parts of the
+standard distribution configuration files as needed.
+
+@b{REMEMBER:} The ``important parts'' of your configuration file are:
+
+@enumerate
+@item @b{Interface} - Defines the dongle
+@item @b{Taps} - Defines the JTAG Taps
+@item @b{GDB Targets} - What GDB talks to
+@item @b{Flash Programing} - Very Helpful
+@end enumerate
+
+Some key things you should look at and understand are:
+
+@enumerate
+@item The reset configuration of your debug environment as a whole
+@item Is there a ``work area'' that OpenOCD can use?
+@* For ARM - work areas mean up to 10x faster downloads.
+@item For MMU/MPU based ARM chips (i.e.: ARM9 and later) will that work area still be available?
+@item For complex targets (multiple chips) the JTAG SPEED becomes an issue.
+@end enumerate
+
+
+
+@node Config File Guidelines
+@chapter Config File Guidelines
+
+This section/chapter is aimed at developers and integrators of
+OpenOCD. These are guidelines for creating new boards and new target
+configurations as of 28/Nov/2008.
+
+However, you, the user of OpenOCD, should be somewhat familiar with
+this section as it should help explain some of the internals of what
+you might be looking at.
+
+The user should find the following directories under @t{$(INSTALLDIR)/lib/openocd} :
+
+@itemize @bullet
+@item @b{interface}
+@*Think JTAG Dongle. Files that configure the JTAG dongle go here.
+@item @b{board}
+@* Think Circuit Board, PWA, PCB, they go by many names.  Board files
+contain initialization items that are specific to a board - for
+example: The SDRAM initialization sequence for the board, or the type
+of external flash and what address it is found at. Any initialization
+sequence to enable that external flash or SDRAM should be found in the
+board file. Boards may also contain multiple targets, i.e.: Two CPUs, or
+a CPU and an FPGA or CPLD.
+@item @b{target}
+@* Think chip. The ``target'' directory represents a JTAG tap (or
+chip) OpenOCD should control, not a board. Two common types of targets
+are ARM chips and FPGA or CPLD chips.
+@end itemize
+
+@b{If needed...} The user in their ``openocd.cfg'' file or the board
+file might override a specific feature in any of the above files by
+setting a variable or two before sourcing the target file. Or adding
+various commands specific to their situation.
+
+@section Interface Config Files
+
+The user should be able to source one of these files via a command like this:
+
+@example
+  source [find interface/FOOBAR.cfg]
+Or:
+  openocd -f interface/FOOBAR.cfg
+@end example
+
+A preconfigured interface file should exist for every interface in use
+today, that said, perhaps some interfaces have only been used by the
+sole developer who created it.
+
+@b{FIXME/NOTE:} We need to add support for a variable like Tcl variable
+tcl_platform(platform), it should be called jim_platform (because it
+is jim, not real tcl) and it should contain 1 of 3 words: ``linux'',
+``cygwin'' or ``mingw''
+
+Interface files should be found in @t{$(INSTALLDIR)/lib/openocd/interface}
+
+@section Board Config Files
+
+@b{Note: BOARD directory NEW as of 28/nov/2008} 
+
+The user should be able to source one of these files via a command like this:
+
+@example
+  source [find board/FOOBAR.cfg]
+Or:
+  openocd -f board/FOOBAR.cfg
+@end example
+
+
+The board file should contain one or more @t{source [find
+target/FOO.cfg]} statements along with any board specific things.
+
+In summary the board files should contain (if present)
+
+@enumerate
+@item External flash configuration (i.e.: the flash on CS0)
+@item SDRAM configuration (size, speed, etc.
+@item Board specific IO configuration (i.e.: GPIO pins might disable a 2nd flash)
+@item Multiple TARGET source statements
+@item All things that are not ``inside a chip''
+@item Things inside a chip go in a 'target' file
+@end enumerate
+
+@section Target Config Files
+
+The user should be able to source one of these files via a command like this:
+
+@example
+  source [find target/FOOBAR.cfg]
+Or:
+  openocd -f target/FOOBAR.cfg
+@end example
+
+In summary the target files should contain
+
+@enumerate 
+@item Set defaults
+@item Create taps
+@item Reset configuration
+@item Work areas
+@item CPU/Chip/CPU-Core specific features
+@item On-Chip flash
+@end enumerate
+
+@subsection Important variable names
+
+By default, the end user should never need to set these
+variables. However, if the user needs to override a setting they only
+need to set the variable in a simple way.
+
+@itemize @bullet
+@item @b{CHIPNAME}
+@* This gives a name to the overall chip, and is used as part of the
+tap identifier dotted name.
+@item @b{ENDIAN}
+@* By default little - unless the chip or board is not normally used that way.
+@item @b{CPUTAPID}
+@* When OpenOCD examines the JTAG chain, it will attempt to identify
+every chip. If the @t{-expected-id} is nonzero, OpenOCD attempts
+to verify the tap id number verses configuration file and may issue an
+error or warning like this. The hope is that this will help to pinpoint
+problems in OpenOCD configurations.
+
+@example
+Info:   JTAG tap: sam7x256.cpu tap/device found: 0x3f0f0f0f (Manufacturer: 0x787, Part: 0xf0f0, Version: 0x3)
+Error:  ERROR: Tap: sam7x256.cpu - Expected id: 0x12345678, Got: 0x3f0f0f0f
+Error:  ERROR: expected: mfg: 0x33c, part: 0x2345, ver: 0x1
+Error:  ERROR:      got: mfg: 0x787, part: 0xf0f0, ver: 0x3
+@end example
+
+@item @b{_TARGETNAME}
+@* By convention, this variable is created by the target configuration
+script. The board configuration file may make use of this variable to
+configure things like a ``reset init'' script, or other things
+specific to that board and that target.
+
+If the chip has 2 targets, use the names @b{_TARGETNAME0},
+@b{_TARGETNAME1}, ... etc.
+
+@b{Remember:} The ``board file'' may include multiple targets.
+
+At no time should the name ``target0'' (the default target name if
+none was specified) be used. The name ``target0'' is a hard coded name
+- the next target on the board will be some other number.
+
+The user (or board file) should reasonably be able to:
+
+@example
+   source [find target/FOO.cfg]
+   $_TARGETNAME configure ... FOO specific parameters
+
+   source [find target/BAR.cfg]
+   $_TARGETNAME configure ... BAR specific parameters
+@end example
+
+@end itemize
+
+@subsection Tcl Variables Guide Line
+The Full Tcl/Tk language supports ``namespaces'' - JIM-Tcl does not.
+
+Thus the rule we follow in OpenOCD is this: Variables that begin with
+a leading underscore are temporary in nature, and can be modified and
+used at will within a ?TARGET? configuration file.
+
+@b{EXAMPLE:} The user should be able to do this:
+
+@example
+   # Board has 3 chips,
+   #    PXA270 #1 network side, big endian
+   #    PXA270 #2 video side, little endian
+   #    Xilinx    Glue logic
+   set CHIPNAME network
+   set ENDIAN big
+   source [find target/pxa270.cfg]
+   # variable: _TARGETNAME = network.cpu
+   # other commands can refer to the "network.cpu" tap.
+   $_TARGETNAME configure .... params for this CPU..
+   
+   set ENDIAN little
+   set CHIPNAME video
+   source [find target/pxa270.cfg]
+   # variable: _TARGETNAME = video.cpu
+   # other commands can refer to the "video.cpu" tap.
+   $_TARGETNAME configure .... params for this CPU..
+   
+   unset ENDIAN
+   set CHIPNAME xilinx
+   source [find target/spartan3.cfg]
+
+   # Since $_TARGETNAME is temporal..
+   #  these names still work!
+   network.cpu configure ... params
+   video.cpu   configure ... params
+
+@end example
+
+@subsection Default Value Boiler Plate Code
+
+All target configuration files should start with this (or a modified form)
+
+@example
+# SIMPLE example
+if @{ [info exists CHIPNAME] @} @{	
+   set  _CHIPNAME $CHIPNAME    
+@} else @{	 
+   set  _CHIPNAME sam7x256
+@}
+
+if @{ [info exists ENDIAN] @} @{	
+   set  _ENDIAN $ENDIAN    
+@} else @{	 
+   set  _ENDIAN little
+@}
+
+if @{ [info exists CPUTAPID ] @} @{
+   set _CPUTAPID $CPUTAPID
+@} else @{
+   set _CPUTAPID 0x3f0f0f0f
+@}
+
+@end example
+
+@subsection Creating Taps
+After the ``defaults'' are choosen [see above] the taps are created.
+
+@b{SIMPLE example:} such as an Atmel AT91SAM7X256
+
+@example
+# for an ARM7TDMI.
+set _TARGETNAME [format "%s.cpu" $_CHIPNAME]
+jtag newtap $_CHIPNAME cpu -irlen 4 -ircapture 0x1 -irmask 0xf -expected-id $_CPUTAPID
+@end example
+
+@b{COMPLEX example:}
+
+This is an SNIP/example for an STR912 - which has 3 internal taps. Key features shown:
+
+@enumerate
+@item @b{Unform tap names} - See: Tap Naming Convention
+@item @b{_TARGETNAME} is created at the end where used.
+@end enumerate
+
+@example
+if @{ [info exists FLASHTAPID ] @} @{
+   set _FLASHTAPID $FLASHTAPID
+@} else @{
+   set _FLASHTAPID 0x25966041
+@}
+jtag newtap $_CHIPNAME flash -irlen 8 -ircapture 0x1 -irmask 0x1 -expected-id $_FLASHTAPID
+
+if @{ [info exists CPUTAPID ] @} @{
+   set _CPUTAPID $CPUTAPID
+@} else @{
+   set _CPUTAPID 0x25966041
+@}
+jtag newtap $_CHIPNAME cpu   -irlen 4 -ircapture 0xf -irmask 0xe -expected-id $_CPUTAPID
+
+
+if @{ [info exists BSTAPID ] @} @{
+   set _BSTAPID $BSTAPID
+@} else @{
+   set _BSTAPID 0x1457f041
+@}
+jtag newtap $_CHIPNAME bs    -irlen 5 -ircapture 0x1 -irmask 0x1 -expected-id $_BSTAPID
+
+set _TARGETNAME [format "%s.cpu" $_CHIPNAME]
+@end example
+
+@b{Tap Naming Convention}
+
+See the command ``jtag newtap'' for detail, but in brief the names you should use are:
+
+@itemize @bullet
+@item @b{tap}
+@item @b{cpu}
+@item @b{flash}
+@item @b{bs}
+@item @b{jrc}
+@item @b{unknownN} - it happens :-(
+@end itemize
+
+@subsection Reset Configuration
+
+Some chips have specific ways the TRST and SRST signals are
+managed. If these are @b{CHIP SPECIFIC} they go here, if they are
+@b{BOARD SPECIFIC} they go in the board file.
+
+@subsection Work Areas
+
+Work areas are small RAM areas used by OpenOCD to speed up downloads,
+and to download small snippets of code to program flash chips.  
+
+If the chip includes a form of ``on-chip-ram'' - and many do - define
+a reasonable work area and use the ``backup'' option.
+
+@b{PROBLEMS:} On more complex chips, this ``work area'' may become
+inaccessible if/when the application code enables or disables the MMU.
+
+@subsection ARM Core Specific Hacks
+
+If the chip has a DCC, enable it. If the chip is an ARM9 with some
+special high speed download features - enable it.
+
+If the chip has an ARM ``vector catch'' feature - by default enable
+it for Undefined Instructions, Data Abort, and Prefetch Abort, if the
+user is really writing a handler for those situations - they can
+easily disable it.  Experiance has shown the ``vector catch'' is
+helpful - for common programing errors.
+
+If present, the MMU, the MPU and the CACHE should be disabled.
+
+@subsection Internal Flash Configuration
+
+This applies @b{ONLY TO MICROCONTROLLERS} that have flash built in.
+
+@b{Never ever} in the ``target configuration file'' define any type of
+flash that is external to the chip. (For example the BOOT flash on
+Chip Select 0). The BOOT flash information goes in a board file - not
+the TARGET (chip) file.
+
+Examples:
+@itemize @bullet
+@item at91sam7x256 - has 256K flash YES enable it.
+@item str912 - has flash internal YES enable it.
+@item imx27 - uses boot flash on CS0 - it goes in the board file.
+@item pxa270 - again - CS0 flash - it goes in the board file.
+@end itemize
+
+@node About JIM-Tcl
+@chapter About JIM-Tcl
+@cindex JIM Tcl
+@cindex tcl
+
+OpenOCD includes a small ``TCL Interpreter'' known as JIM-TCL. You can
+learn more about JIM here: @url{http://jim.berlios.de}
+
+@itemize @bullet
+@item @b{JIM vs. Tcl}
+@* JIM-TCL is a stripped down version of the well known Tcl language,
+which can be found here: @url{http://www.tcl.tk}. JIM-Tcl has far
+fewer features. JIM-Tcl is a single .C file and a single .H file and
+impliments the basic Tcl command set along. In contrast: Tcl 8.6 is a
+4.2 MB .zip file containing 1540 files.
+
+@item @b{Missing Features}
+@* Our practice has been: Add/clone the real Tcl feature if/when
+needed. We welcome JIM Tcl improvements, not bloat.
+
+@item @b{Scripts}
+@* OpenOCD configuration scripts are JIM Tcl Scripts. OpenOCD's
+command interpreter today (28/nov/2008) is a mixture of (newer)
+JIM-Tcl commands, and (older) the orginal command interpreter.
+
+@item @b{Commands}
+@* At the OpenOCD telnet command line (or via the GDB mon command) one
+can type a Tcl for() loop, set variables, etc.
+
+@item @b{Historical Note}
+@* JIM-Tcl was introduced to OpenOCD in spring 2008.
+
+@item @b{Need a crash course in Tcl?}
+@* See: @xref{Tcl Crash Course}.
+@end itemize
+
+
+@node Daemon Configuration
+@chapter Daemon Configuration
+The commands here are commonly found in the openocd.cfg file and are
+used to specify what TCP/IP ports are used, and how GDB should be
+supported.
+@section init
+@cindex init
+This command terminates the configuration stage and
+enters the normal command mode. This can be useful to add commands to
+the startup scripts and commands such as resetting the target,
+programming flash, etc. To reset the CPU upon startup, add "init" and
+"reset" at the end of the config script or at the end of the OpenOCD
+command line using the @option{-c} command line switch.
+
+If this command does not appear in any startup/configuration file
+OpenOCD executes the command for you after processing all
+configuration files and/or command line options.
+
+@b{NOTE:} This command normally occurs at or near the end of your
+openocd.cfg file to force OpenOCD to ``initialize'' and make the
+targets ready. For example: If your openocd.cfg file needs to
+read/write memory on your target - the init command must occur before
+the memory read/write commands.
+
+@section TCP/IP Ports
+@itemize @bullet
+@item @b{telnet_port} <@var{number}>
+@cindex telnet_port
+@*Intended for a human. Port on which to listen for incoming telnet connections.
+
+@item @b{tcl_port} <@var{number}>
+@cindex tcl_port
+@*Intended as a machine interface. Port on which to listen for
+incoming Tcl syntax. This port is intended as a simplified RPC
+connection that can be used by clients to issue commands and get the
+output from the Tcl engine.
+
+@item @b{gdb_port} <@var{number}>
+@cindex gdb_port
+@*First port on which to listen for incoming GDB connections. The GDB port for the
+first target will be gdb_port, the second target will listen on gdb_port + 1, and so on. 
+@end itemize
+
+@section GDB Items
+@itemize @bullet
+@item @b{gdb_breakpoint_override} <@var{hard|soft|disable}>
+@cindex gdb_breakpoint_override
+@anchor{gdb_breakpoint_override}
+@*Force breakpoint type for gdb 'break' commands.
+The raison d'etre for this option is to support GDB GUI's without 
+a hard/soft breakpoint concept where the default OpenOCD and
+GDB behaviour is not sufficient. Note that GDB will use hardware
+breakpoints if the memory map has been set up for flash regions.
+
+This option replaces older arm7_9 target commands that addressed
+the same issue.
+
+@item @b{gdb_detach} <@var{resume|reset|halt|nothing}>
+@cindex gdb_detach
+@*Configures what OpenOCD will do when GDB detaches from the daemon.
+Default behaviour is <@var{resume}>
+
+@item @b{gdb_memory_map} <@var{enable|disable}>
+@cindex gdb_memory_map
+@*Set to <@var{enable}> to cause OpenOCD to send the memory configuration to GDB when
+requested. GDB will then know when to set hardware breakpoints, and program flash
+using the GDB load command. @option{gdb_flash_program enable} must also be enabled 
+for flash programming to work.
+Default behaviour is <@var{enable}>
+@xref{gdb_flash_program}.
+
+@item @b{gdb_flash_program} <@var{enable|disable}>
+@cindex gdb_flash_program
+@anchor{gdb_flash_program}
+@*Set to <@var{enable}> to cause OpenOCD to program the flash memory when a
+vFlash packet is received.
+Default behaviour is <@var{enable}>
+@comment END GDB Items
+@end itemize
+
+@node Interface - Dongle Configuration
+@chapter Interface - Dongle Configuration
+Interface commands are normally found in an interface configuration
+file which is sourced by your openocd.cfg file. These commands tell
+OpenOCD what type of JTAG dongle you have and how to talk to it.
+@section Simple Complete Interface Examples
+@b{A Turtelizer FT2232 Based JTAG Dongle}
+@verbatim
+#interface
+interface ft2232
+ft2232_device_desc "Turtelizer JTAG/RS232 Adapter A"
+ft2232_layout turtelizer2
+ft2232_vid_pid 0x0403 0xbdc8
+@end verbatim
+@b{A SEGGER Jlink}
+@verbatim
+# jlink interface
+interface jlink
+@end verbatim
+@b{A Raisonance RLink}
+@verbatim
+# rlink interface
+interface rlink
+@end verbatim
+@b{Parallel Port}
+@verbatim
+interface parport
+parport_port 0xc8b8
+parport_cable wiggler
+jtag_speed 0
+@end verbatim
+@b{ARM-JTAG-EW}
+@verbatim
+interface arm-jtag-ew
+@end verbatim
+@section Interface Command
+
+The interface command tells OpenOCD what type of JTAG dongle you are
+using. Depending on the type of dongle, you may need to have one or
+more additional commands.
+
+@itemize @bullet
+
+@item @b{interface} <@var{name}>
+@cindex interface
+@*Use the interface driver <@var{name}> to connect to the
+target. Currently supported interfaces are
+
+@itemize @minus
+
+@item @b{parport}
+@* PC parallel port bit-banging (Wigglers, PLD download cable, ...)
+
+@item @b{amt_jtagaccel}
+@* Amontec Chameleon in its JTAG Accelerator configuration connected to a PC's EPP
+mode parallel port
+
+@item @b{ft2232}
+@* FTDI FT2232 (USB) based devices using either the open-source libftdi or the binary only
+FTD2XX driver. The FTD2XX is superior in performance, but not available on every
+platform. The libftdi uses libusb, and should be portable to all systems that provide
+libusb.
+
+@item @b{ep93xx}
+@*Cirrus Logic EP93xx based single-board computer bit-banging (in development)
+
+@item @b{presto}
+@* ASIX PRESTO USB JTAG programmer.
+
+@item @b{usbprog}
+@* usbprog is a freely programmable USB adapter.
+
+@item @b{gw16012}
+@* Gateworks GW16012 JTAG programmer.
+
+@item @b{jlink}
+@* Segger jlink USB adapter
+
+@item @b{rlink}
+@* Raisonance RLink USB adapter
+
+@item @b{vsllink}
+@* vsllink is part of Versaloon which is a versatile USB programmer.
+
+@item @b{arm-jtag-ew}
+@* Olimex ARM-JTAG-EW USB adapter
+@comment - End parameters
+@end itemize
+@comment - End Interface
+@end itemize
+@subsection parport options
+
+@itemize @bullet
+@item @b{parport_port} <@var{number}>
+@cindex parport_port
+@*Either the address of the I/O port (default: 0x378 for LPT1) or the number of
+the @file{/dev/parport} device
+
+When using PPDEV to access the parallel port, use the number of the parallel port:
+@option{parport_port 0} (the default). If @option{parport_port 0x378} is specified
+you may encounter a problem.
+@item @b{parport_cable} <@var{name}>
+@cindex parport_cable
+@*The layout of the parallel port cable used to connect to the target.
+Currently supported cables are 
+@itemize @minus
+@item @b{wiggler}
+@cindex wiggler
+The original Wiggler layout, also supported by several clones, such
+as the Olimex ARM-JTAG
+@item @b{wiggler2}
+@cindex wiggler2
+Same as original wiggler except an led is fitted on D5.
+@item @b{wiggler_ntrst_inverted}
+@cindex wiggler_ntrst_inverted
+Same as original wiggler except TRST is inverted.
+@item @b{old_amt_wiggler}
+@cindex old_amt_wiggler
+The Wiggler configuration that comes with Amontec's Chameleon Programmer. The new
+version available from the website uses the original Wiggler layout ('@var{wiggler}')
+@item @b{chameleon}
+@cindex chameleon
+The Amontec Chameleon's CPLD when operated in configuration mode. This is only used to
+program the Chameleon itself, not a connected target.
+@item @b{dlc5}
+@cindex dlc5
+The Xilinx Parallel cable III.
+@item @b{triton}
+@cindex triton
+The parallel port adapter found on the 'Karo Triton 1 Development Board'.
+This is also the layout used by the HollyGates design
+(see @uref{http://www.lartmaker.nl/projects/jtag/}).
+@item @b{flashlink}
+@cindex flashlink
+The ST Parallel cable.
+@item @b{arm-jtag}
+@cindex arm-jtag
+Same as original wiggler except SRST and TRST connections reversed and
+TRST is also inverted.
+@item @b{altium}
+@cindex altium
+Altium Universal JTAG cable.
+@end itemize
+@item @b{parport_write_on_exit} <@var{on}|@var{off}>
+@cindex parport_write_on_exit
+@*This will configure the parallel driver to write a known value to the parallel
+interface on exiting OpenOCD
+@end itemize
+
+@subsection amt_jtagaccel options
+@itemize @bullet
+@item @b{parport_port} <@var{number}>
+@cindex parport_port
+@*Either the address of the I/O port (default: 0x378 for LPT1) or the number of the
+@file{/dev/parport} device 
+@end itemize
+@subsection ft2232 options
+
+@itemize @bullet
+@item @b{ft2232_device_desc} <@var{description}>
+@cindex ft2232_device_desc
+@*The USB device description of the FTDI FT2232 device. If not
+specified, the FTDI default value is used. This setting is only valid
+if compiled with FTD2XX support.
+
+@b{TODO:} Confirm the following: On Windows the name needs to end with
+a ``space A''? Or not? It has to do with the FTD2xx driver. When must
+this be added and when must it not be added? Why can't the code in the
+interface or in OpenOCD automatically add this if needed? -- Duane.
+
+@item @b{ft2232_serial} <@var{serial-number}>
+@cindex ft2232_serial
+@*The serial number of the FTDI FT2232 device. If not specified, the FTDI default 
+values are used.
+@item @b{ft2232_layout} <@var{name}>
+@cindex ft2232_layout
+@*The layout of the FT2232 GPIO signals used to control output-enables and reset
+signals. Valid layouts are
+@itemize @minus
+@item @b{usbjtag}
+"USBJTAG-1" layout described in the original OpenOCD diploma thesis
+@item @b{jtagkey}
+Amontec JTAGkey and JTAGkey-Tiny
+@item @b{signalyzer}
+Signalyzer
+@item @b{olimex-jtag}
+Olimex ARM-USB-OCD
+@item @b{m5960}
+American Microsystems M5960
+@item @b{evb_lm3s811}
+Luminary Micro EVB_LM3S811 as a JTAG interface (not onboard processor), no TRST or
+SRST signals on external connector
+@item @b{comstick}
+Hitex STR9 comstick 
+@item @b{stm32stick}
+Hitex STM32 Performance Stick
+@item @b{flyswatter}
+Tin Can Tools Flyswatter
+@item @b{turtelizer2}
+egnite Software turtelizer2
+@item @b{oocdlink}
+OOCDLink
+@item @b{axm0432_jtag}
+Axiom AXM-0432
+@end itemize
+
+@item @b{ft2232_vid_pid} <@var{vid}> <@var{pid}>
+@*The vendor ID and product ID of the FTDI FT2232 device. If not specified, the FTDI
+default values are used. Multiple <@var{vid}>, <@var{pid}> pairs may be given, e.g.
+@example
+ft2232_vid_pid 0x0403 0xcff8 0x15ba 0x0003
+@end example
+@item @b{ft2232_latency} <@var{ms}>
+@*On some systems using FT2232 based JTAG interfaces the FT_Read function call in
+ft2232_read() fails to return the expected number of bytes. This can be caused by
+USB communication delays and has proved hard to reproduce and debug. Setting the
+FT2232 latency timer to a larger value increases delays for short USB packets but it
+also reduces the risk of timeouts before receiving the expected number of bytes.
+The OpenOCD default value is 2 and for some systems a value of 10 has proved useful.
+@end itemize
+
+@subsection ep93xx options
+@cindex ep93xx options
+Currently, there are no options available for the ep93xx interface.
+
+@section JTAG Speed
+@itemize @bullet
+@item @b{jtag_khz} <@var{reset speed kHz}>
+@cindex jtag_khz
+
+It is debatable if this command belongs here - or in a board
+configuration file. In fact, in some situations the JTAG speed is
+changed during the target initialisation process (i.e.: (1) slow at
+reset, (2) program the CPU clocks, (3) run fast)
+
+Speed 0 (khz) selects RTCK method. A non-zero speed is in KHZ. Hence: 3000 is 3mhz. 
+
+Not all interfaces support ``rtck''. If the interface device can not
+support the rate asked for, or can not translate from kHz to
+jtag_speed, then an error is returned.
+
+Make sure the JTAG clock is no more than @math{1/6th  CPU-Clock}. This is
+especially true for synthesized cores (-S). Also see RTCK.
+
+@b{NOTE: Script writers} If the target chip requires/uses RTCK -
+please use the command: 'jtag_rclk FREQ'. This Tcl proc (in
+startup.tcl) attempts to enable RTCK, if that fails it falls back to
+the specified frequency.
+
+@example
+    # Fall back to 3mhz if RCLK is not supported
+    jtag_rclk 3000
+@end example
+
+@item @b{DEPRECATED} @b{jtag_speed} - please use jtag_khz above.
+@cindex jtag_speed
+@*Limit the maximum speed of the JTAG interface. Usually, a value of zero means maximum
+speed. The actual effect of this option depends on the JTAG interface used. 
+
+The speed used during reset can be adjusted using setting jtag_speed during
+pre_reset and post_reset events.
+@itemize @minus
+
+@item wiggler: maximum speed / @var{number}
+@item ft2232: 6MHz / (@var{number}+1)
+@item amt jtagaccel: 8 / 2**@var{number}
+@item jlink: maximum speed in kHz (0-12000), 0 will use RTCK
+@item rlink: 24MHz / @var{number}, but only for certain values of @var{number}
+@comment end speed list.
+@end itemize
+
+@comment END command list
+@end itemize
+
+@node Reset Configuration
+@chapter Reset Configuration
+@cindex Reset Configuration
+
+Every system configuration may require a different reset
+configuration. This can also be quite confusing. Please see the
+various board files for example.
+
+@section jtag_nsrst_delay <@var{ms}>
+@cindex jtag_nsrst_delay
+@*How long (in milliseconds) OpenOCD should wait after deasserting
+nSRST before starting new JTAG operations.
+
+@section jtag_ntrst_delay <@var{ms}>
+@cindex jtag_ntrst_delay
+@*Same @b{jtag_nsrst_delay}, but for nTRST  
+
+The jtag_n[st]rst_delay options are useful if reset circuitry (like a
+big resistor/capacitor, reset supervisor, or on-chip features). This
+keeps the signal asserted for some time after the external reset got
+deasserted.
+
+@section reset_config
+
+@b{Note:} To maintainers and integrators: Where exactly the
+``reset configuration'' goes is a good question. It touches several
+things at once. In the end, if you have a board file - the board file
+should define it and assume 100% that the DONGLE supports
+anything. However, that does not mean the target should not also make
+not of something the silicon vendor has done inside the
+chip. @i{Grr.... nothing is every pretty.}
+
+@* @b{Problems:} 
+@enumerate
+@item Every JTAG Dongle is slightly different, some dongles implement reset differently.
+@item Every board is also slightly different; some boards tie TRST and SRST together.
+@item Every chip is slightly different; some chips internally tie the two signals together.
+@item Some may not implement all of the signals the same way.
+@item Some signals might be push-pull, others open-drain/collector.
+@end enumerate
+@b{Best Case:} OpenOCD can hold the SRST (push-button-reset), then
+reset the TAP via TRST and send commands through the JTAG tap to halt
+the CPU at the reset vector before the 1st instruction is executed,
+and finally release the SRST signal.
+@*Depending on your board vendor, chip vendor, etc., these
+signals may have slightly different names. 
+
+OpenOCD defines these signals in these terms:
+@itemize @bullet
+@item @b{TRST} - is Tap Reset - and should reset only the TAP.
+@item @b{SRST} - is System Reset - typically equal to a reset push button.
+@end itemize
+
+The Command:
+
+@itemize @bullet
+@item @b{reset_config} <@var{signals}> [@var{combination}] [@var{trst_type}] [@var{srst_type}]
+@cindex reset_config
+@* The @t{reset_config} command tells OpenOCD the reset configuration
+of your combination of Dongle, Board, and Chips.
+If the JTAG interface provides SRST, but the target doesn't connect
+that signal properly, then OpenOCD can't use it. <@var{signals}> can
+be @option{none}, @option{trst_only}, @option{srst_only} or
+@option{trst_and_srst}.
+
+[@var{combination}] is an optional value specifying broken reset
+signal implementations.  @option{srst_pulls_trst} states that the
+test logic is reset together with the reset of the system (e.g. Philips
+LPC2000, "broken" board layout), @option{trst_pulls_srst} says that
+the system is reset together with the test logic (only hypothetical, I
+haven't seen hardware with such a bug, and can be worked around).
+@option{combined} implies both @option{srst_pulls_trst} and
+@option{trst_pulls_srst}.  The default behaviour if no option given is
+@option{separate}.
+
+The [@var{trst_type}] and [@var{srst_type}] parameters allow the
+driver type of the reset lines to be specified. Possible values are
+@option{trst_push_pull} (default) and @option{trst_open_drain} for the
+test reset signal, and @option{srst_open_drain} (default) and
+@option{srst_push_pull} for the system reset. These values only affect
+JTAG interfaces with support for different drivers, like the Amontec
+JTAGkey and JTAGAccelerator.
+
+@comment - end command
+@end itemize
+
+
+
+@node Tap Creation
+@chapter Tap Creation
+@cindex tap creation
+@cindex tap configuration
+
+In order for OpenOCD to control a target, a JTAG tap must be
+defined/created.
+
+Commands to create taps are normally found in a configuration file and
+are not normally typed by a human.
+
+When a tap is created a @b{dotted.name} is created for the tap. Other
+commands use that dotted.name to manipulate or refer to the tap.
+
+Tap Uses:
+@itemize @bullet
+@item @b{Debug Target} A tap can be used by a GDB debug target
+@item @b{Flash Programing} Some chips program the flash via JTAG
+@item @b{Boundry Scan} Some chips support boundary scan.
+@end itemize
+
+
+@section jtag newtap
+@b{@t{jtag newtap CHIPNAME TAPNAME  configparams ....}}
+@cindex jtag_device
+@cindex jtag newtap
+@cindex tap
+@cindex tap order
+@cindex tap geometry
+
+@comment START options
+@itemize @bullet
+@item @b{CHIPNAME}
+@* is a symbolic name of the chip. 
+@item @b{TAPNAME}
+@* is a symbol name of a tap present on the chip.
+@item @b{Required configparams}
+@* Every tap has 3 required configparams, and several ``optional
+parameters'', the required parameters are:
+@comment START REQUIRED
+@itemize @bullet
+@item @b{-irlen NUMBER} - the length in bits of the instruction register, mostly 4 or 5 bits.
+@item @b{-ircapture NUMBER} - the IDCODE capture command, usually 0x01.
+@item @b{-irmask NUMBER} - the corresponding mask for the IR register. For
+some devices, there are bits in the IR that aren't used.  This lets you mask
+them off when doing comparisons.  In general, this should just be all ones for
+the size of the IR.
+@comment END REQUIRED
+@end itemize
+An example of a FOOBAR Tap
+@example
+jtag newtap foobar tap -irlen 7 -ircapture 0x42 -irmask 0x55
+@end example
+Creates the tap ``foobar.tap'' with the instruction register (IR) is 7
+bits long, during Capture-IR 0x42 is loaded into the IR, and bits
+[6,4,2,0] are checked.
+
+@item @b{Optional configparams}
+@comment START Optional
+@itemize @bullet
+@item @b{-expected-id NUMBER}
+@* By default it is zero. If non-zero represents the
+expected tap ID used when the JTAG chain is examined. See below.
+@item @b{-disable}
+@item @b{-enable}
+@* By default not specified the tap is enabled. Some chips have a
+JTAG route controller (JRC) that is used to enable and/or disable
+specific JTAG taps. You can later enable or disable any JTAG tap via
+the command @b{jtag tapenable DOTTED.NAME} or @b{jtag tapdisable 
+DOTTED.NAME}
+@comment END Optional
+@end itemize
+
+@comment END OPTIONS
+@end itemize
+@b{Notes:}
+@comment START NOTES
+@itemize @bullet
+@item @b{Technically}
+@* newtap is a sub command of the ``jtag'' command
+@item @b{Big Picture Background}
+@*GDB Talks to OpenOCD using the GDB protocol via
+TCP/IP. OpenOCD then uses the JTAG interface (the dongle) to
+control the JTAG chain on your board. Your board has one or more chips
+in a @i{daisy chain configuration}. Each chip may have one or more
+JTAG taps. GDB ends up talking via OpenOCD to one of the taps.
+@item @b{NAME Rules}
+@*Names follow ``C'' symbol name rules (start with alpha ...)
+@item @b{TAPNAME - Conventions}
+@itemize @bullet
+@item @b{tap} - should be used only FPGA or CPLD like devices with a single tap.
+@item @b{cpu} - the main CPU of the chip, alternatively @b{foo.arm} and @b{foo.dsp}
+@item @b{flash} - if the chip has a flash tap, example: str912.flash
+@item @b{bs} - for boundary scan if this is a seperate tap.
+@item @b{jrc} - for JTAG route controller (example: OMAP3530 found on Beagleboards)
+@item @b{unknownN} - where N is a number if you have no idea what the tap is for
+@item @b{Other names} - Freescale IMX31 has a SDMA (smart dma) with a JTAG tap, that tap should be called the ``sdma'' tap.
+@item @b{When in doubt} - use the chip maker's name in their data sheet.
+@end itemize
+@item @b{DOTTED.NAME}
+@* @b{CHIPNAME}.@b{TAPNAME} creates the tap name, aka: the
+@b{Dotted.Name} is the @b{CHIPNAME} and @b{TAPNAME} combined with a
+dot (period); for example: @b{xilinx.tap}, @b{str912.flash},
+@b{omap3530.jrc}, or @b{stm32.cpu} The @b{dotted.name} is used in
+numerous other places to refer to various taps.
+@item @b{ORDER}
+@* The order this command appears via the config files is
+important.
+@item @b{Multi Tap Example}
+@* This example is based on the ST Microsystems STR912. See the ST
+document titled: @b{STR91xFAxxx, Section 3.15 Jtag Interface, Page:
+28/102, Figure 3: JTAG chaining inside the STR91xFA}.
+
+@url{http://eu.st.com/stonline/products/literature/ds/13495.pdf}
+@*@b{checked: 28/nov/2008}
+
+The diagram shows that the TDO pin connects to the flash tap, flash TDI
+connects to the CPU debug tap, CPU TDI connects to the boundary scan
+tap which then connects to the TDI pin.
+
+@example
+   # The order is...
+   # create tap: 'str912.flash'
+   jtag newtap str912 flash  ... params ...
+   # create tap: 'str912.cpu'
+   jtag newtap str912 cpu  ... params ...
+   # create tap: 'str912.bs'
+   jtag newtap str912 bs  ... params ...
+@end example
+
+@item @b{Note: Deprecated} - Index Numbers
+@* Prior to 28/nov/2008, JTAG taps where numbered from 0..N this
+feature is still present, however its use is highly discouraged and
+should not be counted upon.
+@item @b{Multiple chips}
+@* If your board has multiple chips, you should be
+able to @b{source} two configuration files, in the proper order, and
+have the taps created in the proper order.
+@comment END NOTES
+@end itemize
+@comment at command level
+@comment DOCUMENT old command
+@section jtag_device - REMOVED
+@example
+@b{jtag_device} <@var{IR length}> <@var{IR capture}> <@var{IR mask}> <@var{IDCODE instruction}>
+@end example
+@cindex jtag_device
+
+@* @b{Removed: 28/nov/2008} This command has been removed and replaced
+by the ``jtag newtap'' command. The documentation remains here so that
+one can easily convert the old syntax to the new syntax. About the old
+syntax: The old syntax is positional, i.e.: The 3rd parameter is the
+``irmask''. The new syntax requires named prefixes, and supports
+additional options, for example ``-expected-id 0x3f0f0f0f''. Please refer to the
+@b{jtag newtap} command for details.
+@example
+OLD: jtag_device 8 0x01 0xe3 0xfe
+NEW: jtag newtap CHIPNAME TAPNAME -irlen 8 -ircapture 0x01 -irmask 0xe3
+@end example
+
+@section Enable/Disable Taps
+@b{Note:} These commands are intended to be used as a machine/script
+interface. Humans might find the ``scan_chain'' command more helpful
+when querying the state of the JTAG taps.
+
+@b{By default, all taps are enabled}
+
+@itemize @bullet
+@item @b{jtag tapenable} @var{DOTTED.NAME}
+@item @b{jtag tapdisable} @var{DOTTED.NAME}
+@item @b{jtag tapisenabled} @var{DOTTED.NAME}
+@end itemize
+@cindex tap enable
+@cindex tap disable
+@cindex JRC
+@cindex route controller
+
+These commands are used when your target has a JTAG route controller
+that effectively adds or removes a tap from the JTAG chain in a
+non-standard way.
+
+The ``standard way'' to remove a tap would be to place the tap in
+bypass mode. But with the advent of modern chips, this is not always a
+good solution. Some taps operate slowly, others operate fast, and
+there are other JTAG clock synchronisation problems one must face. To
+solve that problem, the JTAG route controller was introduced. Rather
+than ``bypass'' the tap, the tap is completely removed from the
+circuit and skipped.
+
+
+From OpenOCD's point of view, a JTAG tap is in one of 3 states:
+
+@itemize @bullet
+@item @b{Enabled - Not In ByPass} and has a variable bit length
+@item @b{Enabled - In ByPass} and has a length of exactly 1 bit.
+@item @b{Disabled} and has a length of ZERO and is removed from the circuit.
+@end itemize
+
+The IEEE JTAG definition has no concept of a ``disabled'' tap.
+@b{Historical note:} this feature was added 28/nov/2008
+
+@b{jtag tapisenabled DOTTED.NAME}
+
+This command returns 1 if the named tap is currently enabled, 0 if not.
+This command exists so that scripts that manipulate a JRC (like the
+OMAP3530 has) can determine if OpenOCD thinks a tap is presently
+enabled or disabled.
+
+@page
+@node Target Configuration
+@chapter Target Configuration
+
+This chapter discusses how to create a GDB debug target.  Before
+creating a ``target'' a JTAG tap DOTTED.NAME must exist first.
+
+@section targets [NAME]
+@b{Note:} This command name is PLURAL - not singular.  
+
+With NO parameter, this plural @b{targets} command lists all known
+targets in a human friendly form.
+
+With a parameter, this plural @b{targets} command sets the current
+target to the given name. (i.e.: If there are multiple debug targets)
+
+Example:
+@verbatim
+(gdb) mon targets
+      CmdName     Type     Endian    ChainPos   State     
+--  ---------- ---------- ---------- -------- ----------
+    0: target0  arm7tdmi   little        0      halted
+@end verbatim
+
+@section target COMMANDS
+@b{Note:} This command name is SINGULAR - not plural. It is used to
+manipulate specific targets, to create targets and other things.
+
+Once a target is created, a TARGETNAME (object) command is created;
+see below for details.
+
+The TARGET command accepts these sub-commands:
+@itemize @bullet
+@item @b{create} .. parameters ..
+@* creates a new target, see below for details.
+@item @b{types}
+@* Lists all supported target types (perhaps some are not yet in this document).
+@item @b{names}
+@* Lists all current debug target names, for example: 'str912.cpu' or 'pxa27.cpu' example usage:
+@verbatim  
+	foreach t [target names] {
+	    puts [format "Target: %s\n" $t]
+	}
+@end verbatim
+@item @b{current}
+@* Returns the current target. OpenOCD always has, or refers to the ``current target'' in some way.
+By default, commands like: ``mww'' (used to write memory) operate on the current target.
+@item @b{number} @b{NUMBER}
+@* Internally OpenOCD maintains a list of targets - in numerical index
+(0..N-1) this command returns the name of the target at index N.
+Example usage:
+@verbatim
+    set thename [target number $x]
+    puts [format "Target %d is: %s\n" $x $thename]
+@end verbatim
+@item @b{count}
+@* Returns the number of targets known to OpenOCD (see number above)
+Example:
+@verbatim
+    set c [target count]
+    for { set x 0 } { $x < $c } { incr x } {
+       	# Assuming you have created this function
+       	print_target_details $x
+    }
+@end verbatim
+
+@end itemize
+
+@section TARGETNAME (object) commands
+@b{Use:} Once a target is created, an ``object name'' that represents the
+target is created. By convention, the target name is identical to the
+tap name. In a multiple target system, one can preceed many common
+commands with a specific target name and effect only that target.
+@example
+    str912.cpu    mww 0x1234 0x42
+    omap3530.cpu  mww 0x5555 123
+@end example
+
+@b{Model:} The Tcl/Tk language has the concept of object commands. A
+good example is a on screen button, once a button is created a button
+has a name (a path in Tk terms) and that name is useable as a 1st
+class command. For example in Tk, one can create a button and later
+configure it like this:
+
+@example
+    # Create
+    button .foobar -background red -command @{ foo @}
+    # Modify
+    .foobar configure -foreground blue
+    # Query
+    set x [.foobar cget -background]
+    # Report
+    puts [format "The button is %s" $x]
+@end example
+    
+In OpenOCD's terms, the ``target'' is an object just like a Tcl/Tk
+button. Commands available as a ``target object'' are:
+
+@comment START targetobj commands.
+@itemize @bullet
+@item @b{configure} - configure the target; see Target Config/Cget Options below
+@item @b{cget} - query the target configuration; see Target Config/Cget Options below
+@item @b{curstate} - current target state (running, halt, etc.
+@item @b{eventlist}
+@* Intended for a human to see/read the currently configure target events.
+@item @b{Various Memory Commands} See the ``mww'' command elsewhere.
+@comment start memory
+@itemize @bullet
+@item @b{mww} ...
+@item @b{mwh} ...
+@item @b{mwb} ...
+@item @b{mdw} ...
+@item @b{mdh} ...
+@item @b{mdb} ...
+@comment end memory
+@end itemize
+@item @b{Memory To Array, Array To Memory}
+@* These are aimed at a machine interface to memory
+@itemize @bullet
+@item @b{mem2array ARRAYNAME WIDTH ADDRESS COUNT}
+@item @b{array2mem ARRAYNAME WIDTH ADDRESS COUNT}
+@* Where:
+@*   @b{ARRAYNAME} is the name of an array variable
+@*   @b{WIDTH} is 8/16/32 - indicating the memory access size
+@*   @b{ADDRESS} is the target memory address
+@*   @b{COUNT} is the number of elements to process
+@end itemize
+@item @b{Used during ``reset''}
+@* These commands are used internally by the OpenOCD scripts to deal
+with odd reset situations and are not documented here.
+@itemize @bullet
+@item @b{arp_examine}
+@item @b{arp_poll}
+@item @b{arp_reset}
+@item @b{arp_halt}
+@item @b{arp_waitstate}
+@end itemize
+@item @b{invoke-event} @b{EVENT-NAME}
+@* Invokes the specific event manually for the target
+@end itemize
+
+@section Target Events
+At various times, certain things can happen, or you want them to happen.
+
+Examples:
+@itemize @bullet
+@item What should happen when GDB connects? Should your target reset?
+@item When GDB tries to flash the target, do you need to enable the flash via a special command?
+@item During reset, do you need to write to certain memory location to reconfigure the SDRAM?
+@end itemize
+
+All of the above items are handled by target events.
+
+To specify an event action, either during target creation, or later
+via ``$_TARGETNAME configure'' see this example.
+
+Syntactially, the option is: ``-event NAME BODY'' where NAME is a
+target event name, and BODY is a Tcl procedure or string of commands
+to execute. 
+
+The programmers model is the ``-command'' option used in Tcl/Tk
+buttons and events. Below are two identical examples, the first
+creates and invokes small procedure. The second inlines the procedure.
+
+@example
+   proc my_attach_proc @{ @} @{
+       puts "RESET...."
+       reset halt
+   @}
+   mychip.cpu configure -event gdb-attach my_attach_proc 
+   mychip.cpu configure -event gdb-attach @{ puts "Reset..." ; reset halt @}
+@end example
+
+@section Current Events
+The following events are available:
+@itemize @bullet
+@item @b{debug-halted}
+@* The target has halted for debug reasons (i.e.: breakpoint)
+@item @b{debug-resumed}
+@* The target has resumed (i.e.: gdb said run)
+@item @b{early-halted}
+@* Occurs early in the halt process
+@item @b{examine-end}
+@* Currently not used (goal: when JTAG examine completes)
+@item @b{examine-start}
+@* Currently not used (goal: when JTAG examine starts)
+@item @b{gdb-attach}
+@* When GDB connects
+@item @b{gdb-detach}
+@* When GDB disconnects
+@item @b{gdb-end}
+@* When the taret has halted and GDB is not doing anything (see early halt)
+@item @b{gdb-flash-erase-start}
+@* Before the GDB flash process tries to erase the flash
+@item @b{gdb-flash-erase-end}
+@* After the GDB flash process has finished erasing the flash
+@item @b{gdb-flash-write-start}
+@* Before GDB writes to the flash
+@item @b{gdb-flash-write-end}
+@* After GDB writes to the flash
+@item @b{gdb-start}
+@* Before the taret steps, gdb is trying to start/resume the target
+@item @b{halted}
+@* The target has halted
+@item @b{old-gdb_program_config}
+@* DO NOT USE THIS: Used internally
+@item @b{old-pre_resume}
+@* DO NOT USE THIS: Used internally
+@item @b{reset-assert-pre}
+@* Before reset is asserted on the tap.
+@item @b{reset-assert-post}
+@* Reset is now asserted on the tap.
+@item @b{reset-deassert-pre}
+@* Reset is about to be released on the tap
+@item @b{reset-deassert-post}
+@* Reset has been released on the tap
+@item @b{reset-end}
+@* Currently not used.
+@item @b{reset-halt-post}
+@* Currently not usd
+@item @b{reset-halt-pre}
+@* Currently not used
+@item @b{reset-init}
+@* Currently not used
+@item @b{reset-start}
+@* Currently not used
+@item @b{reset-wait-pos}
+@* Currently not used
+@item @b{reset-wait-pre}
+@* Currently not used
+@item @b{resume-start}
+@* Before any target is resumed
+@item @b{resume-end}
+@* After all targets have resumed
+@item @b{resume-ok}
+@* Success
+@item @b{resumed}
+@* Target has resumed
+@item @b{tap-enable}
+@* Executed by @b{jtag tapenable DOTTED.NAME} command. Example:
+@example
+jtag configure DOTTED.NAME -event tap-enable @{
+  puts "Enabling CPU"
+  ...
+@}
+@end example
+@item @b{tap-disable}
+@*Executed by @b{jtag tapdisable DOTTED.NAME} command. Example:
+@example
+jtag configure DOTTED.NAME -event tap-disable @{
+  puts "Disabling CPU"
+  ...
+@}
+@end example
+@end itemize
+
+@section target create
+@cindex target
+@cindex target creation
+
+@example
+@b{target} @b{create} <@var{NAME}> <@var{TYPE}> <@var{PARAMS ...}>
+@end example
+@*This command creates a GDB debug target that refers to a specific JTAG tap.
+@comment START params
+@itemize @bullet
+@item @b{NAME}
+@* Is the name of the debug target. By convention it should be the tap
+DOTTED.NAME, this name is also used to create the target object
+command.
+@item @b{TYPE}
+@* Specifies the target type, i.e.: ARM7TDMI, or Cortex-M3. Currently supported targets are:
+@comment START types
+@itemize @minus
+@item @b{arm7tdmi}
+@item @b{arm720t}
+@item @b{arm9tdmi}
+@item @b{arm920t}
+@item @b{arm922t}
+@item @b{arm926ejs}
+@item @b{arm966e} 
+@item @b{cortex_m3}
+@item @b{feroceon}
+@item @b{xscale}
+@item @b{arm11}
+@item @b{mips_m4k}
+@comment end TYPES
+@end itemize
+@item @b{PARAMS}
+@*PARAMs are various target configuration parameters. The following ones are mandatory:
+@comment START mandatory
+@itemize @bullet
+@item @b{-endian big|little}
+@item @b{-chain-position DOTTED.NAME}
+@comment end MANDATORY
+@end itemize
+@comment END params
+@end itemize
+
+@section Target Config/Cget Options
+These options can be specified when the target is created, or later
+via the configure option or to query the target via cget.
+@itemize @bullet
+@item @b{-type} - returns the target type
+@item @b{-event NAME BODY} see Target events
+@item @b{-work-area-virt [ADDRESS]} specify/set the work area
+@item @b{-work-area-phys [ADDRESS]} specify/set the work area
+@item @b{-work-area-size [ADDRESS]} specify/set the work area
+@item @b{-work-area-backup [0|1]} does the work area get backed up
+@item @b{-endian  [big|little]} 
+@item @b{-variant [NAME]} some chips have variants OpenOCD needs to know about
+@item @b{-chain-position DOTTED.NAME} the tap name this target refers to.
+@end itemize
+Example:
+@example
+  for @{ set x 0 @} @{ $x < [target count] @} @{ incr x @} @{
+    set name [target number $x]
+    set y [$name cget -endian]
+    set z [$name cget -type]
+    puts [format "Chip %d is %s, Endian: %s, type: %s" $x $y $z]
+  @}
+@end example
+
+@section Target Variants
+@itemize @bullet
+@item @b{arm7tdmi}
+@* Unknown (please write me)
+@item @b{arm720t}
+@* Unknown (please write me) (similar to arm7tdmi)
+@item @b{arm9tdmi}
+@* Variants: @option{arm920t}, @option{arm922t} and @option{arm940t}
+This enables the hardware single-stepping support found on these
+cores.
+@item @b{arm920t}
+@* None.
+@item @b{arm966e}
+@* None (this is also used as the ARM946)
+@item @b{cortex_m3}
+@* use variant <@var{-variant lm3s}> when debugging Luminary lm3s targets. This will cause
+OpenOCD to use a software reset rather than asserting SRST to avoid a issue with clearing
+the debug registers. This is fixed in Fury Rev B, DustDevil Rev B, Tempest, these revisions will
+be detected and the normal reset behaviour used.
+@item @b{xscale}
+@* Supported variants are @option{ixp42x}, @option{ixp45x}, @option{ixp46x},@option{pxa250}, @option{pxa255}, @option{pxa26x}.
+@item @b{arm11}
+@* Supported variants are @option{arm1136}, @option{arm1156}, @option{arm1176}
+@item @b{mips_m4k}
+@* Use variant @option{ejtag_srst} when debugging targets that do not
+provide a functional SRST line on the EJTAG connector.  This causes
+OpenOCD to instead use an EJTAG software reset command to reset the
+processor.  You still need to enable @option{srst} on the reset
+configuration command to enable OpenOCD hardware reset functionality.
+@comment END variants
+@end itemize
+@section working_area - Command Removed
+@cindex working_area
+@*@b{Please use the ``$_TARGETNAME configure -work-area-... parameters instead}
+@* This documentation remains because there are existing scripts that
+still use this that need to be converted.
+@example
+  working_area target# address  size backup| [virtualaddress]
+@end example
+@* The target# is a the 0 based target numerical index.
+
+This command specifies a working area for the debugger to use. This
+may be used to speed-up downloads to target memory and flash
+operations, or to perform otherwise unavailable operations (some
+coprocessor operations on ARM7/9 systems, for example). The last
+parameter decides whether the memory should be preserved
+(<@var{backup}>) or can simply be overwritten (<@var{nobackup}>). If
+possible, use a working_area that doesn't need to be backed up, as
+performing a backup slows down operation.
+
+@node Flash Configuration
+@chapter Flash programming
+@cindex Flash Configuration
+
+@b{Note:} As of 28/nov/2008 OpenOCD does not know how to program a SPI
+flash that a micro may boot from. Perhaps you, the reader, would like to
+contribute support for this.
+
+Flash Steps:
+@enumerate
+@item Configure via the command @b{flash bank} 
+@* Normally this is done in a configuration file.
+@item Operate on the flash via @b{flash SOMECOMMAND}
+@* Often commands to manipulate the flash are typed by a human, or run
+via a script in some automated way. For example: To program the boot
+flash on your board.
+@item GDB Flashing
+@* Flashing via GDB requires the flash be configured via ``flash
+bank'', and the GDB flash features be enabled. See the daemon
+configuration section for more details.
+@end enumerate
+
+@section Flash commands
+@cindex Flash commands
+@subsection flash banks
+@b{flash banks}
+@cindex flash banks
+@*List configured flash banks 
+@*@b{NOTE:} the singular form: 'flash bank' is used to configure the flash banks.
+@subsection flash info
+@b{flash info} <@var{num}>
+@cindex flash info
+@*Print info about flash bank <@option{num}> 
+@subsection flash probe
+@b{flash probe} <@var{num}>
+@cindex flash probe
+@*Identify the flash, or validate the parameters of the configured flash. Operation
+depends on the flash type. 
+@subsection flash erase_check
+@b{flash erase_check} <@var{num}>
+@cindex flash erase_check
+@*Check erase state of sectors in flash bank <@var{num}>. This is the only operation that
+updates the erase state information displayed by @option{flash info}. That means you have
+to issue an @option{erase_check} command after erasing or programming the device to get
+updated information. 
+@subsection flash protect_check
+@b{flash protect_check} <@var{num}>
+@cindex flash protect_check
+@*Check protection state of sectors in flash bank <num>. 
+@option{flash erase_sector} using the same syntax. 
+@subsection flash erase_sector
+@b{flash erase_sector} <@var{num}> <@var{first}> <@var{last}>
+@cindex flash erase_sector
+@anchor{flash erase_sector}
+@*Erase sectors at bank <@var{num}>, starting at sector <@var{first}> up to and including
+<@var{last}>. Sector numbering starts at 0. Depending on the flash type, erasing may
+require the protection to be disabled first (e.g. Intel Advanced Bootblock flash using
+the CFI driver).
+@subsection flash erase_address
+@b{flash erase_address} <@var{address}> <@var{length}>
+@cindex flash erase_address
+@*Erase sectors starting at <@var{address}> for <@var{length}> bytes
+@subsection flash write_bank
+@b{flash write_bank} <@var{num}> <@var{file}> <@var{offset}>
+@cindex flash write_bank
+@anchor{flash write_bank}
+@*Write the binary <@var{file}> to flash bank <@var{num}>, starting at
+<@option{offset}> bytes from the beginning of the bank.
+@subsection flash write_image
+@b{flash write_image} [@var{erase}] <@var{file}> [@var{offset}] [@var{type}]
+@cindex flash write_image
+@anchor{flash write_image}
+@*Write the image <@var{file}> to the current target's flash bank(s). A relocation
+[@var{offset}] can be specified and the file [@var{type}] can be specified
+explicitly as @option{bin} (binary), @option{ihex} (Intel hex), @option{elf}
+(ELF file) or @option{s19} (Motorola s19). Flash memory will be erased prior to programming
+if the @option{erase} parameter is given.
+@subsection flash protect
+@b{flash protect} <@var{num}> <@var{first}> <@var{last}> <@option{on}|@option{off}>
+@cindex flash protect
+@*Enable (@var{on}) or disable (@var{off}) protection of flash sectors <@var{first}> to
+<@var{last}> of @option{flash bank} <@var{num}>.
+
+@subsection mFlash commands
+@cindex mFlash commands
+@itemize @bullet
+@item @b{mflash probe} 
+@cindex mflash probe
+Probe mflash.
+@item @b{mflash write} <@var{num}> <@var{file}> <@var{offset}>
+@cindex mflash write
+Write the binary <@var{file}> to mflash bank <@var{num}>, starting at
+<@var{offset}> bytes from the beginning of the bank.
+@item @b{mflash dump} <@var{num}> <@var{file}> <@var{offset}> <@var{size}>
+@cindex mflash dump
+Dump <size> bytes, starting at <@var{offset}> bytes from the beginning of the <@var{num}> bank 
+to a <@var{file}>.
+@end itemize
+
+@section flash bank command
+The @b{flash bank} command is used to configure one or more flash chips (or banks in OpenOCD terms)
+
+@example
+@b{flash bank} <@var{driver}> <@var{base}> <@var{size}> <@var{chip_width}>
+<@var{bus_width}> <@var{target#}> [@var{driver_options ...}]
+@end example
+@cindex flash bank
+@*Configures a flash bank at <@var{base}> of <@var{size}> bytes and <@var{chip_width}>
+and <@var{bus_width}> bytes using the selected flash <driver>.
+
+@subsection External Flash - cfi options
+@cindex cfi options
+CFI flashes are external flash chips - often they are connected to a
+specific chip select on the CPU. By default, at hard reset, most
+CPUs have the ablity to ``boot'' from some flash chip - typically
+attached to the CPU's CS0 pin.
+
+For other chip selects: OpenOCD does not know how to configure, or
+access a specific chip select. Instead you, the human, might need to 
+configure additional chip selects via other commands (like: mww) , or
+perhaps configure a GPIO pin that controls the ``write protect'' pin
+on the flash chip.
+
+@b{flash bank cfi} <@var{base}> <@var{size}> <@var{chip_width}> <@var{bus_width}>
+<@var{target#}> [@var{jedec_probe}|@var{x16_as_x8}]
+@*CFI flashes require the number of the target they're connected to as an additional
+argument. The CFI driver makes use of a working area (specified for the target)
+to significantly speed up operation. 
+
+@var{chip_width} and @var{bus_width} are specified in bytes.
+
+The @var{jedec_probe} option is used to detect certain non-CFI flash ROMs, like AM29LV010 and similar types.
+
+@var{x16_as_x8} ???
+
+@subsection Internal Flash (Microcontrollers)
+@subsubsection lpc2000 options
+@cindex lpc2000 options
+
+@b{flash bank lpc2000} <@var{base}> <@var{size}> 0 0 <@var{target#}> <@var{variant}>
+<@var{clock}> [@var{calc_checksum}]
+@*LPC flashes don't require the chip and bus width to be specified. Additional
+parameters are the <@var{variant}>, which may be @var{lpc2000_v1} (older LPC21xx and LPC22xx)
+or @var{lpc2000_v2} (LPC213x, LPC214x, LPC210[123], LPC23xx and LPC24xx), the number
+of the target this flash belongs to (first is 0), the frequency at which the core
+is currently running (in kHz - must be an integral number), and the optional keyword
+@var{calc_checksum}, telling the driver to calculate a valid checksum for the exception
+vector table. 
+
+
+@subsubsection at91sam7 options
+@cindex at91sam7 options
+
+@b{flash bank at91sam7} 0 0 0 0 <@var{target#}>
+@*AT91SAM7 flashes only require the @var{target#}, all other values are looked up after
+reading the chip-id and type. 
+
+@subsubsection str7 options
+@cindex str7 options
+
+@b{flash bank str7x} <@var{base}> <@var{size}> 0 0 <@var{target#}> <@var{variant}>
+@*variant can be either STR71x, STR73x or STR75x. 
+
+@subsubsection str9 options
+@cindex str9 options
+
+@b{flash bank str9x} <@var{base}> <@var{size}> 0 0 <@var{target#}>
+@*The str9 needs the flash controller to be configured prior to Flash programming, e.g.
+@example
+str9x flash_config 0 4 2 0 0x80000
+@end example
+This will setup the BBSR, NBBSR, BBADR and NBBADR registers respectively. 
+
+@subsubsection str9 options (str9xpec driver)
+
+@b{flash bank str9xpec} <@var{base}> <@var{size}> 0 0 <@var{target#}>
+@*Before using the flash commands the turbo mode must be enabled using str9xpec
+@option{enable_turbo} <@var{num>.}
+
+Only use this driver for locking/unlocking the device or configuring the option bytes.
+Use the standard str9 driver for programming. @xref{STR9 specific commands}.
+
+@subsubsection Stellaris (LM3Sxxx) options
+@cindex Stellaris (LM3Sxxx) options
+
+@b{flash bank stellaris} <@var{base}> <@var{size}> 0 0 <@var{target#}>
+@*Stellaris flash plugin only require the @var{target#}. 
+
+@subsubsection stm32x options
+@cindex stm32x options
+
+@b{flash bank stm32x} <@var{base}> <@var{size}> 0 0 <@var{target#}>
+@*stm32x flash plugin only require the @var{target#}. 
+
+@subsubsection aduc702x options
+@cindex aduc702x options
+
+@b{flash bank aduc702x} 0 0 0 0 <@var{target#}>
+@*The aduc702x flash plugin works with Analog Devices model numbers ADUC7019 through ADUC7028.  The setup command only requires the @var{target#} argument (all devices in this family have the same memory layout).
+
+@subsection mFlash Configuration
+@cindex mFlash Configuration
+@b{mflash bank} <@var{soc}> <@var{base}> <@var{chip_width}> <@var{bus_width}>
+<@var{RST pin}> <@var{WP pin}> <@var{DPD pin}> <@var{target #}>
+@cindex mflash bank
+@*Configures a mflash for <@var{soc}> host bank at
+<@var{base}>. <@var{chip_width}> and <@var{bus_width}> are bytes
+order. Pin number format is dependent on host GPIO calling convention.
+If WP or DPD pin was not used, write -1. Currently, mflash bank
+support s3c2440 and pxa270.
+
+(ex. of s3c2440) mflash <@var{RST pin}> is GPIO B1, <@var{WP pin}> and <@var{DPD pin}> are not used.
+@example
+mflash bank s3c2440 0x10000000 2 2 1b -1 -1 0
+@end example
+(ex. of pxa270) mflash <@var{RST pin}> is GPIO 43, <@var{DPD pin}> is not used and <@var{DPD pin}> is GPIO 51.
+@example
+mflash bank pxa270 0x08000000 2 2 43 -1 51 0  
+@end example
+
+@section Microcontroller specific Flash Commands
+
+@subsection AT91SAM7 specific commands
+@cindex AT91SAM7 specific commands
+The flash configuration is deduced from the chip identification register. The flash
+controller handles erases automatically on a page (128/265 byte) basis, so erase is
+not necessary for flash programming. AT91SAM7 processors with less than 512K flash
+only have a single flash bank embedded on chip. AT91SAM7xx512 have two flash planes
+that can be erased separatly. Only an EraseAll command is supported by the controller
+for each flash plane and this is called with
+@itemize @bullet
+@item @b{flash erase} <@var{num}> @var{first_plane} @var{last_plane}
+@*bulk erase flash planes first_plane to last_plane. 
+@item @b{at91sam7 gpnvm} <@var{num}> <@var{bit}> <@option{set}|@option{clear}>
+@cindex at91sam7 gpnvm
+@*set or clear a gpnvm bit for the processor 
+@end itemize
+
+@subsection STR9 specific commands
+@cindex STR9 specific commands
+@anchor{STR9 specific commands}
+These are flash specific commands when using the str9xpec driver.
+@itemize @bullet
+@item @b{str9xpec enable_turbo} <@var{num}>
+@cindex str9xpec enable_turbo
+@*enable turbo mode, will simply remove the str9 from the chain and talk
+directly to the embedded flash controller. 
+@item @b{str9xpec disable_turbo} <@var{num}>
+@cindex str9xpec disable_turbo
+@*restore the str9 into JTAG chain. 
+@item @b{str9xpec lock} <@var{num}>
+@cindex str9xpec lock
+@*lock str9 device. The str9 will only respond to an unlock command that will
+erase the device. 
+@item @b{str9xpec unlock} <@var{num}>
+@cindex str9xpec unlock
+@*unlock str9 device. 
+@item @b{str9xpec options_read} <@var{num}>
+@cindex str9xpec options_read
+@*read str9 option bytes. 
+@item @b{str9xpec options_write} <@var{num}>
+@cindex str9xpec options_write
+@*write str9 option bytes. 
+@end itemize
+
+Note: Before using the str9xpec driver here is some background info to help
+you better understand how the drivers works. OpenOCD has two flash drivers for
+the str9.
+@enumerate
+@item
+Standard driver @option{str9x} programmed via the str9 core. Normally used for
+flash programming as it is faster than the @option{str9xpec} driver.
+@item
+Direct programming @option{str9xpec} using the flash controller. This is an
+ISC compilant (IEEE 1532) tap connected in series with the str9 core. The str9
+core does not need to be running to program using this flash driver. Typical use
+for this driver is locking/unlocking the target and programming the option bytes.
+@end enumerate
+
+Before we run any commands using the @option{str9xpec} driver we must first disable
+the str9 core. This example assumes the @option{str9xpec} driver has been
+configured for flash bank 0.
+@example
+# assert srst, we do not want core running
+# while accessing str9xpec flash driver
+jtag_reset 0 1
+# turn off target polling
+poll off
+# disable str9 core
+str9xpec enable_turbo 0
+# read option bytes
+str9xpec options_read 0
+# re-enable str9 core
+str9xpec disable_turbo 0
+poll on
+reset halt
+@end example
+The above example will read the str9 option bytes.
+When performing a unlock remember that you will not be able to halt the str9 - it
+has been locked. Halting the core is not required for the @option{str9xpec} driver
+as mentioned above, just issue the commands above manually or from a telnet prompt.
+
+@subsection STR9 configuration
+@cindex STR9 configuration
+@itemize @bullet
+@item @b{str9x flash_config} <@var{bank}> <@var{BBSR}> <@var{NBBSR}>
+<@var{BBADR}> <@var{NBBADR}>
+@cindex str9x flash_config
+@*Configure str9 flash controller.
+@example
+e.g. str9x flash_config 0 4 2 0 0x80000
+This will setup
+BBSR - Boot Bank Size register
+NBBSR - Non Boot Bank Size register
+BBADR - Boot Bank Start Address register
+NBBADR - Boot Bank Start Address register
+@end example
+@end itemize
+
+@subsection STR9 option byte configuration
+@cindex STR9 option byte configuration
+@itemize @bullet
+@item @b{str9xpec options_cmap} <@var{num}> <@option{bank0}|@option{bank1}>
+@cindex str9xpec options_cmap
+@*configure str9 boot bank. 
+@item @b{str9xpec options_lvdthd} <@var{num}> <@option{2.4v}|@option{2.7v}>
+@cindex str9xpec options_lvdthd
+@*configure str9 lvd threshold. 
+@item @b{str9xpec options_lvdsel} <@var{num}> <@option{vdd}|@option{vdd_vddq}>
+@cindex str9xpec options_lvdsel
+@*configure str9 lvd source. 
+@item @b{str9xpec options_lvdwarn} <@var{bank}> <@option{vdd}|@option{vdd_vddq}>
+@cindex str9xpec options_lvdwarn
+@*configure str9 lvd reset warning source. 
+@end itemize
+
+@subsection STM32x specific commands
+@cindex STM32x specific commands
+ 
+These are flash specific commands when using the stm32x driver.
+@itemize @bullet
+@item @b{stm32x lock} <@var{num}>
+@cindex stm32x lock
+@*lock stm32 device. 
+@item @b{stm32x unlock} <@var{num}>
+@cindex stm32x unlock
+@*unlock stm32 device. 
+@item @b{stm32x options_read} <@var{num}>
+@cindex stm32x options_read
+@*read stm32 option bytes. 
+@item @b{stm32x options_write} <@var{num}> <@option{SWWDG}|@option{HWWDG}>
+<@option{RSTSTNDBY}|@option{NORSTSTNDBY}> <@option{RSTSTOP}|@option{NORSTSTOP}>
+@cindex stm32x options_write
+@*write stm32 option bytes. 
+@item @b{stm32x mass_erase} <@var{num}>
+@cindex stm32x mass_erase
+@*mass erase flash memory. 
+@end itemize
+
+@subsection Stellaris specific commands
+@cindex Stellaris specific commands
+ 
+These are flash specific commands when using the Stellaris driver.
+@itemize @bullet
+@item @b{stellaris mass_erase} <@var{num}>
+@cindex stellaris mass_erase
+@*mass erase flash memory. 
+@end itemize
+
+@node General Commands
+@chapter General Commands
+@cindex commands
+
+The commands documented in this chapter here are common commands that
+you, as a human, may want to type and see the output of. Configuration type
+commands are documented elsewhere.
+
+Intent:
+@itemize @bullet
+@item @b{Source Of Commands}
+@* OpenOCD commands can occur in a configuration script (discussed
+elsewhere) or typed manually by a human or supplied programatically,
+or via one of several TCP/IP Ports.
+
+@item @b{From the human}
+@* A human should interact with the telnet interface (default port: 4444,
+or via GDB, default port 3333)
+
+To issue commands from within a GDB session, use the @option{monitor}
+command, e.g. use @option{monitor poll} to issue the @option{poll}
+command. All output is relayed through the GDB session.
+
+@item @b{Machine Interface}
+The Tcl interface's intent is to be a machine interface. The default Tcl
+port is 5555.
+@end itemize
+
+
+@section Daemon Commands
+
+@subsection sleep [@var{msec}]
+@cindex sleep
+@*Wait for n milliseconds before resuming. Useful in connection with script files
+(@var{script} command and @var{target_script} configuration). 
+
+@subsection shutdown
+@cindex shutdown
+@*Close the OpenOCD daemon, disconnecting all clients (GDB, telnet, other). 
+
+@subsection debug_level [@var{n}]
+@cindex debug_level
+@anchor{debug_level}
+@*Display or adjust debug level to n<0-3> 
+
+@subsection fast [@var{enable|disable}]
+@cindex fast
+@*Default disabled. Set default behaviour of OpenOCD to be "fast and dangerous". For instance ARM7/9 DCC memory
+downloads and fast memory access will work if the JTAG interface isn't too fast and
+the core doesn't run at a too low frequency. Note that this option only changes the default
+and that the indvidual options, like DCC memory downloads, can be enabled and disabled
+individually. 
+
+The target specific "dangerous" optimisation tweaking options may come and go
+as more robust and user friendly ways are found to ensure maximum throughput
+and robustness with a minimum of configuration. 
+
+Typically the "fast enable" is specified first on the command line:
+
+@example
+openocd -c "fast enable" -c "interface dummy" -f target/str710.cfg
+@end example
+
+@subsection log_output <@var{file}>
+@cindex log_output
+@*Redirect logging to <file> (default: stderr) 
+
+@subsection script <@var{file}>
+@cindex script
+@*Execute commands from <file> 
+See also: ``source [find FILENAME]''
+
+@section Target state handling
+@subsection power <@var{on}|@var{off}>
+@cindex reg
+@*Turn power switch to target on/off. 
+No arguments: print status.
+Not all interfaces support this.
+
+@subsection reg [@option{#}|@option{name}] [value]
+@cindex reg
+@*Access a single register by its number[@option{#}] or by its [@option{name}].
+No arguments: list all available registers for the current target.
+Number or name argument: display a register.
+Number or name and value arguments: set register value.
+
+@subsection poll [@option{on}|@option{off}]
+@cindex poll
+@*Poll the target for its current state. If the target is in debug mode, architecture
+specific information about the current state is printed. An optional parameter
+allows continuous polling to be enabled and disabled.
+
+@subsection halt [@option{ms}]
+@cindex halt
+@*Send a halt request to the target and wait for it to halt for up to [@option{ms}] milliseconds.
+Default [@option{ms}] is 5 seconds if no arg given.
+Optional arg @option{ms} is a timeout in milliseconds. Using 0 as the [@option{ms}]
+will stop OpenOCD from waiting.
+
+@subsection wait_halt [@option{ms}]
+@cindex wait_halt
+@*Wait for the target to enter debug mode. Optional [@option{ms}] is
+a timeout in milliseconds. Default [@option{ms}] is 5 seconds if no
+arg is given.
+
+@subsection resume [@var{address}]
+@cindex resume
+@*Resume the target at its current code position, or at an optional address.
+OpenOCD will wait 5 seconds for the target to resume.
+
+@subsection step [@var{address}]
+@cindex step
+@*Single-step the target at its current code position, or at an optional address. 
+
+@subsection reset [@option{run}|@option{halt}|@option{init}]
+@cindex reset
+@*Perform a hard-reset. The optional parameter specifies what should happen after the reset.
+
+With no arguments a "reset run" is executed
+@itemize @minus
+@item @b{run}
+@cindex reset run
+@*Let the target run.
+@item @b{halt}
+@cindex reset halt
+@*Immediately halt the target (works only with certain configurations).
+@item @b{init}
+@cindex reset init
+@*Immediately halt the target, and execute the reset script (works only with certain
+configurations)
+@end itemize
+
+@subsection soft_reset_halt
+@cindex reset
+@*Requesting target halt and executing a soft reset. This is often used
+when a target cannot be reset and halted. The target, after reset is
+released begins to execute code. OpenOCD attempts to stop the CPU and
+then sets the program counter back to the reset vector. Unfortunately
+the code that was executed may have left the hardware in an unknown
+state.
+
+
+@section Memory access commands
+@subsection meminfo
+display available RAM memory.
+@subsection Memory peek/poke type commands
+These commands allow accesses of a specific size to the memory
+system. Often these are used to configure the current target in some
+special way. For example - one may need to write certian values to the
+SDRAM controller to enable SDRAM.
+
+@enumerate
+@item To change the current target see the ``targets'' (plural) command
+@item In system level scripts these commands are deprecated, please use the TARGET object versions.
+@end enumerate
+
+@itemize @bullet
+@item @b{mdw} <@var{addr}> [@var{count}]
+@cindex mdw
+@*display memory words (32bit)
+@item @b{mdh} <@var{addr}> [@var{count}]
+@cindex mdh
+@*display memory half-words (16bit)
+@item @b{mdb} <@var{addr}> [@var{count}]
+@cindex mdb
+@*display memory bytes (8bit)
+@item @b{mww} <@var{addr}> <@var{value}>
+@cindex mww
+@*write memory word (32bit)
+@item @b{mwh} <@var{addr}> <@var{value}>
+@cindex mwh
+@*write memory half-word (16bit)
+@item @b{mwb} <@var{addr}> <@var{value}>
+@cindex mwb
+@*write memory byte (8bit)
+@end itemize
+
+@section Image loading commands
+@subsection load_image
+@b{load_image} <@var{file}> <@var{address}> [@option{bin}|@option{ihex}|@option{elf}]
+@cindex load_image
+@anchor{load_image}
+@*Load image <@var{file}> to target memory at <@var{address}> 
+@subsection fast_load_image
+@b{fast_load_image} <@var{file}> <@var{address}> [@option{bin}|@option{ihex}|@option{elf}]
+@cindex fast_load_image
+@anchor{fast_load_image}
+@*Normally you should be using @b{load_image} or GDB load. However, for
+testing purposes or when I/O overhead is significant(OpenOCD running on an embedded
+host), storing the image in memory and uploading the image to the target
+can be a way to upload e.g. multiple debug sessions when the binary does not change.
+Arguments are the same as @b{load_image}, but the image is stored in OpenOCD host
+memory, i.e. does not affect target.  This approach is also useful when profiling
+target programming performance as I/O and target programming can easily be profiled
+separately.
+@subsection fast_load
+@b{fast_load}
+@cindex fast_image
+@anchor{fast_image}
+@*Loads an image stored in memory by @b{fast_load_image} to the current target. Must be preceeded by fast_load_image.
+@subsection dump_image
+@b{dump_image} <@var{file}> <@var{address}> <@var{size}>
+@cindex dump_image
+@anchor{dump_image}
+@*Dump <@var{size}> bytes of target memory starting at <@var{address}> to a
+(binary) <@var{file}>.
+@subsection verify_image
+@b{verify_image} <@var{file}> <@var{address}> [@option{bin}|@option{ihex}|@option{elf}]
+@cindex verify_image
+@*Verify <@var{file}> against target memory starting at <@var{address}>.
+This will first attempt a comparison using a CRC checksum, if this fails it will try a binary compare.
+
+
+@section Breakpoint commands
+@cindex Breakpoint commands
+@itemize @bullet
+@item @b{bp} <@var{addr}> <@var{len}> [@var{hw}]
+@cindex bp
+@*set breakpoint <address> <length> [hw]
+@item @b{rbp} <@var{addr}>
+@cindex rbp
+@*remove breakpoint <adress>
+@item @b{wp} <@var{addr}> <@var{len}> <@var{r}|@var{w}|@var{a}> [@var{value}] [@var{mask}]
+@cindex wp
+@*set watchpoint <address> <length> <r/w/a> [value] [mask]
+@item @b{rwp} <@var{addr}>
+@cindex rwp
+@*remove watchpoint <adress>
+@end itemize
+
+@section Misc Commands
+@cindex Other Target Commands
+@itemize
+@item @b{profile} <@var{seconds}> <@var{gmon.out}>
+
+Profiling samples the CPU's program counter as quickly as possible, which is useful for non-intrusive stochastic profiling.
+
+@end itemize
+
+@section Target Specific Commands
+@cindex Target Specific Commands
+
+
+@page
+@section Architecture Specific Commands
+@cindex Architecture Specific Commands
+
+@subsection ARMV4/5 specific commands
+@cindex ARMV4/5 specific commands
+
+These commands are specific to ARM architecture v4 and v5, like all ARM7/9 systems
+or Intel XScale (XScale isn't supported yet).
+@itemize @bullet
+@item @b{armv4_5 reg}
+@cindex armv4_5 reg
+@*Display a list of all banked core registers, fetching the current value from every
+core mode if necessary. OpenOCD versions before rev. 60 didn't fetch the current
+register value. 
+@item @b{armv4_5 core_mode} [@var{arm}|@var{thumb}]
+@cindex armv4_5 core_mode
+@*Displays the core_mode, optionally changing it to either ARM or Thumb mode.
+The target is resumed in the currently set @option{core_mode}. 
+@end itemize
+
+@subsection ARM7/9 specific commands
+@cindex ARM7/9 specific commands
+
+These commands are specific to ARM7 and ARM9 targets, like ARM7TDMI, ARM720t,
+ARM920T or ARM926EJ-S.
+@itemize @bullet
+@item @b{arm7_9 dbgrq} <@var{enable}|@var{disable}>
+@cindex arm7_9 dbgrq
+@*Enable use of the DBGRQ bit to force entry into debug mode. This should be
+safe for all but ARM7TDMI--S cores (like Philips LPC). 
+@item @b{arm7_9 fast_memory_access} <@var{enable}|@var{disable}>
+@cindex arm7_9 fast_memory_access
+@anchor{arm7_9 fast_memory_access}
+@*Allow OpenOCD to read and write memory without checking completion of
+the operation. This provides a huge speed increase, especially with USB JTAG
+cables (FT2232), but might be unsafe if used with targets running at very low
+speeds, like the 32kHz startup clock of an AT91RM9200. 
+@item @b{arm7_9 dcc_downloads} <@var{enable}|@var{disable}>
+@cindex arm7_9 dcc_downloads
+@*Enable the use of the debug communications channel (DCC) to write larger (>128 byte)
+amounts of memory. DCC downloads offer a huge speed increase, but might be potentially
+unsafe, especially with targets running at very low speeds. This command was introduced
+with OpenOCD rev. 60. 
+@end itemize
+
+@subsection ARM720T specific commands
+@cindex ARM720T specific commands
+
+@itemize @bullet
+@item @b{arm720t cp15} <@var{num}> [@var{value}]
+@cindex arm720t cp15
+@*display/modify cp15 register <@option{num}> [@option{value}].
+@item @b{arm720t md<bhw>_phys} <@var{addr}> [@var{count}]
+@cindex arm720t md<bhw>_phys
+@*Display memory at physical address addr. 
+@item @b{arm720t mw<bhw>_phys} <@var{addr}> <@var{value}>
+@cindex arm720t mw<bhw>_phys
+@*Write memory at physical address addr.
+@item @b{arm720t virt2phys} <@var{va}>
+@cindex arm720t virt2phys
+@*Translate a virtual address to a physical address. 
+@end itemize
+
+@subsection ARM9TDMI specific commands
+@cindex ARM9TDMI specific commands
+
+@itemize @bullet
+@item @b{arm9tdmi vector_catch} <@var{all}|@var{none}>
+@cindex arm9tdmi vector_catch
+@*Catch arm9 interrupt vectors, can be @option{all} @option{none} or any of the following:
+@option{reset} @option{undef} @option{swi} @option{pabt} @option{dabt} @option{reserved}
+@option{irq} @option{fiq}.
+
+Can also be used on other ARM9 based cores such as ARM966, ARM920T and ARM926EJ-S.
+@end itemize
+
+@subsection ARM966E specific commands
+@cindex ARM966E specific commands
+
+@itemize @bullet
+@item @b{arm966e cp15} <@var{num}> [@var{value}]
+@cindex arm966e cp15
+@*display/modify cp15 register <@option{num}> [@option{value}].
+@end itemize
+
+@subsection ARM920T specific commands
+@cindex ARM920T specific commands
+
+@itemize @bullet
+@item @b{arm920t cp15} <@var{num}> [@var{value}]
+@cindex arm920t cp15
+@*display/modify cp15 register <@option{num}> [@option{value}].
+@item @b{arm920t cp15i} <@var{num}> [@var{value}] [@var{address}]
+@cindex arm920t cp15i
+@*display/modify cp15 (interpreted access) <@option{opcode}> [@option{value}] [@option{address}]
+@item @b{arm920t cache_info}
+@cindex arm920t cache_info
+@*Print information about the caches found. This allows to see whether your target
+is an ARM920T (2x16kByte cache) or ARM922T (2x8kByte cache). 
+@item @b{arm920t md<bhw>_phys} <@var{addr}> [@var{count}]
+@cindex arm920t md<bhw>_phys
+@*Display memory at physical address addr. 
+@item @b{arm920t mw<bhw>_phys} <@var{addr}> <@var{value}>
+@cindex arm920t mw<bhw>_phys
+@*Write memory at physical address addr. 
+@item @b{arm920t read_cache} <@var{filename}>
+@cindex arm920t read_cache
+@*Dump the content of ICache and DCache to a file. 
+@item @b{arm920t read_mmu} <@var{filename}>
+@cindex arm920t read_mmu
+@*Dump the content of the ITLB and DTLB to a file. 
+@item @b{arm920t virt2phys} <@var{va}>
+@cindex arm920t virt2phys
+@*Translate a virtual address to a physical address. 
+@end itemize
+
+@subsection ARM926EJ-S specific commands
+@cindex ARM926EJ-S specific commands
+
+@itemize @bullet
+@item @b{arm926ejs cp15} <@var{num}> [@var{value}]
+@cindex arm926ejs cp15
+@*display/modify cp15 register <@option{num}> [@option{value}].
+@item @b{arm926ejs cache_info}
+@cindex arm926ejs cache_info
+@*Print information about the caches found.
+@item @b{arm926ejs md<bhw>_phys} <@var{addr}> [@var{count}]
+@cindex arm926ejs md<bhw>_phys
+@*Display memory at physical address addr. 
+@item @b{arm926ejs mw<bhw>_phys} <@var{addr}> <@var{value}>
+@cindex arm926ejs mw<bhw>_phys
+@*Write memory at physical address addr. 
+@item @b{arm926ejs virt2phys} <@var{va}>
+@cindex arm926ejs virt2phys
+@*Translate a virtual address to a physical address. 
+@end itemize
+
+@subsection CORTEX_M3 specific commands
+@cindex CORTEX_M3 specific commands
+
+@itemize @bullet
+@item @b{cortex_m3 maskisr} <@var{on}|@var{off}>
+@cindex cortex_m3 maskisr
+@*Enable masking (disabling) interrupts during target step/resume.
+@end itemize
+
+@page
+@section Debug commands
+@cindex Debug commands
+The following commands give direct access to the core, and are most likely
+only useful while debugging OpenOCD.
+@itemize @bullet
+@item @b{arm7_9 write_xpsr} <@var{32-bit value}> <@option{0=cpsr}, @option{1=spsr}>
+@cindex arm7_9 write_xpsr
+@*Immediately write either the current program status register (CPSR) or the saved
+program status register (SPSR), without changing the register cache (as displayed
+by the @option{reg} and @option{armv4_5 reg} commands). 
+@item @b{arm7_9 write_xpsr_im8} <@var{8-bit value}> <@var{rotate 4-bit}>
+<@var{0=cpsr},@var{1=spsr}>
+@cindex arm7_9 write_xpsr_im8
+@*Write the 8-bit value rotated right by 2*rotate bits, using an immediate write
+operation (similar to @option{write_xpsr}). 
+@item @b{arm7_9 write_core_reg} <@var{num}> <@var{mode}> <@var{value}>
+@cindex arm7_9 write_core_reg
+@*Write a core register, without changing the register cache (as displayed by the
+@option{reg} and @option{armv4_5 reg} commands). The <@var{mode}> argument takes the
+encoding of the [M4:M0] bits of the PSR. 
+@end itemize
+
+@section Target Requests
+@cindex Target Requests
+OpenOCD can handle certain target requests, currently debugmsg are only supported for arm7_9 and cortex_m3.
+See libdcc in the contrib dir for more details.
+@itemize @bullet
+@item @b{target_request debugmsgs} <@var{enable}|@var{disable}|@var{charmsg}>
+@cindex target_request debugmsgs
+@*Enable/disable target debugmsgs requests. debugmsgs enable messages to be sent to the debugger while the target is running. @var{charmsg} receives messages if Linux kernel ``Kernel low-level debugging via EmbeddedICE DCC channel'' option is enabled.
+@end itemize
+
+@node JTAG Commands
+@chapter JTAG Commands
+@cindex JTAG Commands
+Generally most people will not use the bulk of these commands. They
+are mostly used by the OpenOCD developers or those who need to
+directly manipulate the JTAG taps.
+
+In general these commands control JTAG taps at a very low level. For
+example if you need to control a JTAG Route Controller (i.e.: the
+OMAP3530 on the Beagle Board has one) you might use these commands in
+a script or an event procedure.
+@section Commands
+@cindex Commands
+@itemize @bullet
+@item @b{scan_chain}
+@cindex scan_chain
+@*Print current scan chain configuration. 
+@item @b{jtag_reset} <@var{trst}> <@var{srst}>
+@cindex jtag_reset
+@*Toggle reset lines. 
+@item @b{endstate} <@var{tap_state}>
+@cindex endstate
+@*Finish JTAG operations in <@var{tap_state}>. 
+@item @b{runtest} <@var{num_cycles}>
+@cindex runtest
+@*Move to Run-Test/Idle, and execute <@var{num_cycles}> 
+@item @b{statemove} [@var{tap_state}]
+@cindex statemove
+@*Move to current endstate or [@var{tap_state}] 
+@item @b{irscan} <@var{device}> <@var{instr}> [@var{dev2}] [@var{instr2}] ...
+@cindex irscan
+@*Execute IR scan <@var{device}> <@var{instr}> [@var{dev2}] [@var{instr2}] ... 
+@item @b{drscan} <@var{device}> [@var{dev2}] [@var{var2}] ...
+@cindex drscan
+@*Execute DR scan <@var{device}> [@var{dev2}] [@var{var2}] ... 
+@item @b{verify_ircapture} <@option{enable}|@option{disable}>
+@cindex verify_ircapture
+@*Verify value captured during Capture-IR. Default is enabled.
+@item @b{var} <@var{name}> [@var{num_fields}|@var{del}] [@var{size1}] ... 
+@cindex var
+@*Allocate, display or delete variable <@var{name}> [@var{num_fields}|@var{del}] [@var{size1}] ... 
+@item @b{field} <@var{var}> <@var{field}> [@var{value}|@var{flip}]
+@cindex field
+Display/modify variable field <@var{var}> <@var{field}> [@var{value}|@var{flip}].
+@end itemize
+
+@section Tap states
+@cindex Tap states
+Available tap_states are:
+@itemize @bullet
+@item @b{RESET}
+@cindex RESET
+@item @b{IDLE}
+@cindex IDLE
+@item @b{DRSELECT}
+@cindex DRSELECT
+@item @b{DRCAPTURE}
+@cindex DRCAPTURE
+@item @b{DRSHIFT}
+@cindex DRSHIFT
+@item @b{DREXIT1}
+@cindex DREXIT1
+@item @b{DRPAUSE}
+@cindex DRPAUSE
+@item @b{DREXIT2}
+@cindex DREXIT2
+@item @b{DRUPDATE}
+@cindex DRUPDATE
+@item @b{IRSELECT}
+@cindex IRSELECT
+@item @b{IRCAPTURE}
+@cindex IRCAPTURE
+@item @b{IRSHIFT}
+@cindex IRSHIFT
+@item @b{IREXIT1}
+@cindex IREXIT1
+@item @b{IRPAUSE}
+@cindex IRPAUSE
+@item @b{IREXIT2}
+@cindex IREXIT2
+@item @b{IRUPDATE}
+@cindex IRUPDATE
+@end itemize
+
+
+@node TFTP
+@chapter TFTP
+@cindex TFTP
+If OpenOCD runs on an embedded host(as ZY1000 does), then TFTP can
+be used to access files on PCs (either the developer's PC or some other PC).
+
+The way this works on the ZY1000 is to prefix a filename by
+"/tftp/ip/" and append the TFTP path on the TFTP
+server (tftpd). E.g. "load_image /tftp/10.0.0.96/c:\temp\abc.elf" will
+load c:\temp\abc.elf from the developer pc (10.0.0.96) into memory as
+if the file was hosted on the embedded host.
+
+In order to achieve decent performance, you must choose a TFTP server
+that supports a packet size bigger than the default packet size (512 bytes). There
+are numerous TFTP servers out there (free and commercial) and you will have to do
+a bit of googling to find something that fits your requirements.
+
+@node Sample Scripts
+@chapter Sample Scripts
+@cindex scripts
+
+This page shows how to use the Target Library.
+
+The configuration script can be divided into the following sections:
+@itemize @bullet
+@item Daemon configuration
+@item Interface
+@item JTAG scan chain
+@item Target configuration
+@item Flash configuration 
+@end itemize
+
+Detailed information about each section can be found at OpenOCD configuration. 
+
+@section AT91R40008 example
+@cindex AT91R40008 example
+To start OpenOCD with a target script for the AT91R40008 CPU and reset
+the CPU upon startup of the OpenOCD daemon.
+@example
+openocd -f interface/parport.cfg -f target/at91r40008.cfg -c init -c reset 
+@end example
+
+
+@node GDB and OpenOCD
+@chapter GDB and OpenOCD
+@cindex GDB and OpenOCD
+OpenOCD complies with the remote gdbserver protocol, and as such can be used
+to debug remote targets.
+
+@section Connecting to GDB
+@cindex Connecting to GDB
+@anchor{Connecting to GDB}
+Use GDB 6.7 or newer with OpenOCD if you run into trouble. For
+instance GDB 6.3 has a known bug that produces bogus memory access
+errors, which has since been fixed: look up 1836 in
+@url{http://sourceware.org/cgi-bin/gnatsweb.pl?database=gdb}
+
+@*OpenOCD can communicate with GDB in two ways:
+@enumerate
+@item
+A socket (TCP/IP) connection is typically started as follows:
+@example
+target remote localhost:3333
+@end example
+This would cause GDB to connect to the gdbserver on the local pc using port 3333.
+@item
+A pipe connection is typically started as follows:
+@example
+target remote | openocd --pipe
+@end example
+This would cause GDB to run OpenOCD and communicate using pipes (stdin/stdout).
+Using this method has the advantage of GDB starting/stopping OpenOCD for the debug
+session.
+@end enumerate
+
+@*To see a list of available OpenOCD commands type @option{monitor help} on the
+GDB command line.
+
+OpenOCD supports the gdb @option{qSupported} packet, this enables information
+to be sent by the GDB remote server (i.e. OpenOCD) to GDB. Typical information includes
+packet size and the device's memory map.
+
+Previous versions of OpenOCD required the following GDB options to increase
+the packet size and speed up GDB communication:
+@example
+set remote memory-write-packet-size 1024
+set remote memory-write-packet-size fixed
+set remote memory-read-packet-size 1024
+set remote memory-read-packet-size fixed
+@end example
+This is now handled in the @option{qSupported} PacketSize and should not be required.
+
+@section Programming using GDB
+@cindex Programming using GDB
+
+By default the target memory map is sent to GDB. This can be disabled by
+the following OpenOCD configuration option:
+@example
+gdb_memory_map disable
+@end example
+For this to function correctly a valid flash configuration must also be set
+in OpenOCD. For faster performance you should also configure a valid 
+working area.
+
+Informing GDB of the memory map of the target will enable GDB to protect any
+flash areas of the target and use hardware breakpoints by default. This means
+that the OpenOCD option @option{gdb_breakpoint_override} is not required when
+using a memory map. @xref{gdb_breakpoint_override}.
+
+To view the configured memory map in GDB, use the GDB command @option{info mem}
+All other unassigned addresses within GDB are treated as RAM.
+
+GDB 6.8 and higher set any memory area not in the memory map as inaccessible.
+This can be changed to the old behaviour by using the following GDB command
+@example
+set mem inaccessible-by-default off
+@end example
+
+If @option{gdb_flash_program enable} is also used, GDB will be able to
+program any flash memory using the vFlash interface.
+
+GDB will look at the target memory map when a load command is given, if any
+areas to be programmed lie within the target flash area the vFlash packets
+will be used.
+
+If the target needs configuring before GDB programming, an event
+script can be executed:
+@example
+$_TARGETNAME configure -event EVENTNAME BODY
+@end example
+
+To verify any flash programming the GDB command @option{compare-sections}
+can be used.
+
+@node Tcl Scripting API
+@chapter Tcl Scripting API
+@cindex Tcl Scripting API
+@cindex Tcl scripts
+@section API rules
+
+The commands are stateless. E.g. the telnet command line has a concept
+of currently active target, the Tcl API proc's take this sort of state
+information as an argument to each proc.
+
+There are three main types of return values: single value, name value
+pair list and lists. 
+
+Name value pair. The proc 'foo' below returns a name/value pair
+list. 
+
+@verbatim
+
+ >  set foo(me)  Duane
+ >  set foo(you) Oyvind
+ >  set foo(mouse) Micky
+ >  set foo(duck) Donald
+
+If one does this:
+
+ >  set foo
+
+The result is:
+
+    me Duane you Oyvind mouse Micky duck Donald
+
+Thus, to get the names of the associative array is easy:
+
+     foreach  { name value }   [set foo]   {
+                puts "Name: $name, Value: $value"
+     }
+@end verbatim
+ 
+Lists returned must be relatively small. Otherwise a range
+should be passed in to the proc in question.
+
+@section Internal low-level Commands
+
+By low-level, the intent is a human would not directly use these commands.
+
+Low-level commands are (should be) prefixed with "openocd_", e.g. openocd_flash_banks
+is the low level API upon which "flash banks" is implemented.
+
+@itemize @bullet
+@item @b{ocd_mem2array} <@var{varname}> <@var{width}> <@var{addr}> <@var{nelems}>
+
+Read memory and return as a Tcl array for script processing
+@item @b{ocd_array2mem} <@var{varname}> <@var{width}> <@var{addr}> <@var{nelems}>
+
+Convert a Tcl array to memory locations and write the values
+@item @b{ocd_flash_banks} <@var{driver}> <@var{base}> <@var{size}> <@var{chip_width}> <@var{bus_width}> <@var{target}> [@option{driver options} ...]
+
+Return information about the flash banks
+@end itemize
+
+OpenOCD commands can consist of two words, e.g. "flash banks". The
+startup.tcl "unknown" proc will translate this into a Tcl proc
+called "flash_banks".
+
+@section OpenOCD specific Global Variables
+
+@subsection HostOS
+
+Real Tcl has ::tcl_platform(), and platform::identify, and many other
+variables. JimTCL, as implemented in OpenOCD creates $HostOS which
+holds one of the following values:
+
+@itemize @bullet 
+@item @b{winxx}    Built using Microsoft Visual Studio
+@item @b{linux}    Linux is the underlying operating sytem
+@item @b{darwin}   Darwin (mac-os) is the underlying operating sytem.
+@item @b{cygwin}   Running under Cygwin
+@item @b{mingw32}  Running under MingW32
+@item @b{other}    Unknown, none of the above.
+@end itemize
+
+Note: 'winxx' was choosen because today (March-2009) no distinction is made between Win32 and Win64.
+
+@node Upgrading
+@chapter Deprecated/Removed Commands
+@cindex Deprecated/Removed Commands
+Certain OpenOCD commands have been deprecated/removed during the various revisions.
+
+@itemize @bullet
+@item @b{arm7_9 fast_writes}
+@cindex arm7_9 fast_writes
+@*use @option{arm7_9 fast_memory_access} command with same args. @xref{arm7_9 fast_memory_access}.
+@item @b{arm7_9 force_hw_bkpts}
+@cindex arm7_9 force_hw_bkpts
+@*Use @option{gdb_breakpoint_override} instead. Note that GDB will use hardware breakpoints
+for flash if the GDB memory map has been set up(default when flash is declared in
+target configuration). @xref{gdb_breakpoint_override}.
+@item @b{arm7_9 sw_bkpts}
+@cindex arm7_9 sw_bkpts
+@*On by default. See also @option{gdb_breakpoint_override}. @xref{gdb_breakpoint_override}.
+@item @b{daemon_startup}
+@cindex daemon_startup
+@*this config option has been removed, simply adding @option{init} and @option{reset halt} to
+the end of your config script will give the same behaviour as using @option{daemon_startup reset}
+and @option{target cortex_m3 little reset_halt 0}.
+@item @b{dump_binary}
+@cindex dump_binary
+@*use @option{dump_image} command with same args. @xref{dump_image}.
+@item @b{flash erase}
+@cindex flash erase
+@*use @option{flash erase_sector} command with same args. @xref{flash erase_sector}.
+@item @b{flash write}
+@cindex flash write
+@*use @option{flash write_bank} command with same args. @xref{flash write_bank}.
+@item @b{flash write_binary}
+@cindex flash write_binary
+@*use @option{flash write_bank} command with same args. @xref{flash write_bank}.
+@item @b{flash auto_erase}
+@cindex flash auto_erase
+@*use @option{flash write_image} command passing @option{erase} as the first parameter. @xref{flash write_image}.
+@item @b{load_binary}
+@cindex load_binary
+@*use @option{load_image} command with same args. @xref{load_image}.
+@item @b{run_and_halt_time}
+@cindex run_and_halt_time
+@*This command has been removed for simpler reset behaviour, it can be simulated with the
+following commands:
+@smallexample
+reset run
+sleep 100
+halt
+@end smallexample
+@item @b{target} <@var{type}> <@var{endian}> <@var{jtag-position}>
+@cindex target
+@*use the create subcommand of @option{target}.
+@item @b{target_script} <@var{target#}> <@var{eventname}> <@var{scriptname}>
+@cindex target_script
+@*use <@var{target_name}> configure -event <@var{eventname}> "script <@var{scriptname}>"
+@item @b{working_area}
+@cindex working_area
+@*use the @option{configure} subcommand of @option{target} to set the work-area-virt, work-area-phy, work-area-size, and work-area-backup properties of the target.
+@end itemize
+
+@node FAQ
+@chapter FAQ
+@cindex faq
+@enumerate
+@item @b{RTCK, also known as: Adaptive Clocking - What is it?}
+@cindex RTCK
+@cindex adaptive clocking
+@*
+
+In digital circuit design it is often refered to as ``clock
+synchronisation'' the JTAG interface uses one clock (TCK or TCLK)
+operating at some speed, your target is operating at another.  The two
+clocks are not synchronised, they are ``asynchronous''
+
+In order for the two to work together they must be synchronised. Otherwise
+the two systems will get out of sync with each other and nothing will
+work. There are 2 basic options:
+@enumerate
+@item
+Use a special circuit.
+@item
+One clock must be some multiple slower than the other.
+@end enumerate
+
+@b{Does this really matter?} For some chips and some situations, this
+is a non-issue (i.e.: A 500MHz ARM926) but for others - for example some
+Atmel SAM7 and SAM9 chips start operation from reset at 32kHz -
+program/enable the oscillators and eventually the main clock. It is in
+those critical times you must slow the JTAG clock to sometimes 1 to
+4kHz.
+
+Imagine debugging a 500MHz ARM926 hand held battery powered device
+that ``deep sleeps'' at 32kHz between every keystroke. It can be
+painful.
+
+@b{Solution #1 - A special circuit} 
+
+In order to make use of this, your JTAG dongle must support the RTCK
+feature. Not all dongles support this - keep reading!
+
+The RTCK signal often found in some ARM chips is used to help with
+this problem. ARM has a good description of the problem described at
+this link: @url{http://www.arm.com/support/faqdev/4170.html} [checked
+28/nov/2008]. Link title: ``How does the JTAG synchronisation logic
+work? / how does adaptive clocking work?''.
+
+The nice thing about adaptive clocking is that ``battery powered hand
+held device example'' - the adaptiveness works perfectly all the
+time. One can set a break point or halt the system in the deep power
+down code, slow step out until the system speeds up.
+
+@b{Solution #2 - Always works - but may be slower}
+
+Often this is a perfectly acceptable solution.
+
+In most simple terms: Often the JTAG clock must be 1/10 to 1/12 of
+the target clock speed. But what that ``magic division'' is varies
+depending on the chips on your board. @b{ARM rule of thumb} Most ARM
+based systems require an 8:1 division. @b{Xilinx rule of thumb} is
+1/12 the clock speed.
+
+Note: Many FTDI2232C based JTAG dongles are limited to 6MHz.
+
+You can still debug the 'low power' situations - you just need to
+manually adjust the clock speed at every step. While painful and
+tedious, it is not always practical.
+
+It is however easy to ``code your way around it'' - i.e.: Cheat a little,
+have a special debug mode in your application that does a ``high power
+sleep''. If you are careful - 98% of your problems can be debugged
+this way.
+
+To set the JTAG frequency use the command:
+
+@example
+        # Example: 1.234MHz
+        jtag_khz 1234
+@end example
+
+
+@item @b{Win32 Pathnames} Why don't backslashes work in Windows paths?
+
+OpenOCD uses Tcl and a backslash is an escape char. Use @{ and @}
+around Windows filenames. 
+
+@example
+> echo \a
+
+> echo @{\a@}
+\a
+> echo "\a"
+
+>
+@end example
+
+
+@item @b{Missing: cygwin1.dll} OpenOCD complains about a missing cygwin1.dll.
+
+Make sure you have Cygwin installed, or at least a version of OpenOCD that
+claims to come with all the necessary DLLs. When using Cygwin, try launching
+OpenOCD from the Cygwin shell.
+
+@item @b{Breakpoint Issue} I'm trying to set a breakpoint using GDB (or a frontend like Insight or
+Eclipse), but OpenOCD complains that "Info: arm7_9_common.c:213
+arm7_9_add_breakpoint(): sw breakpoint requested, but software breakpoints not enabled".
+
+GDB issues software breakpoints when a normal breakpoint is requested, or to implement
+source-line single-stepping. On ARMv4T systems, like ARM7TDMI, ARM720T or ARM920T,
+software breakpoints consume one of the two available hardware breakpoints.  
+
+@item @b{LPC2000 Flash} When erasing or writing LPC2000 on-chip flash, the operation fails at random.
+
+Make sure the core frequency specified in the @option{flash lpc2000} line matches the
+clock at the time you're programming the flash. If you've specified the crystal's
+frequency, make sure the PLL is disabled. If you've specified the full core speed
+(e.g. 60MHz), make sure the PLL is enabled.
+
+@item @b{Amontec Chameleon} When debugging using an Amontec Chameleon in its JTAG Accelerator configuration,
+I keep getting "Error: amt_jtagaccel.c:184 amt_wait_scan_busy(): amt_jtagaccel timed
+out while waiting for end of scan, rtck was disabled".
+
+Make sure your PC's parallel port operates in EPP mode. You might have to try several
+settings in your PC BIOS (ECP, EPP, and different versions of those).
+
+@item @b{Data Aborts} When debugging with OpenOCD and GDB (plain GDB, Insight, or Eclipse),
+I get lots of "Error: arm7_9_common.c:1771 arm7_9_read_memory():
+memory read caused data abort". 
+
+The errors are non-fatal, and are the result of GDB trying to trace stack frames
+beyond the last valid frame. It might be possible to prevent this by setting up
+a proper "initial" stack frame, if you happen to know what exactly has to
+be done, feel free to add this here.
+
+@b{Simple:} In your startup code - push 8 registers of zeros onto the
+stack before calling main(). What GDB is doing is ``climbing'' the run
+time stack by reading various values on the stack using the standard
+call frame for the target. GDB keeps going - until one of 2 things
+happen @b{#1} an invalid frame is found, or @b{#2} some huge number of
+stackframes have been processed. By pushing zeros on the stack, GDB
+gracefully stops.
+
+@b{Debugging Interrupt Service Routines} - In your ISR before you call
+your C code, do the same - artifically push some zeros onto the stack,
+remember to pop them off when the ISR is done.
+
+@b{Also note:} If you have a multi-threaded operating system, they
+often do not @b{in the intrest of saving memory} waste these few
+bytes. Painful... 
+
+
+@item @b{JTAG Reset Config} I get the following message in the OpenOCD console (or log file):
+"Warning: arm7_9_common.c:679 arm7_9_assert_reset(): srst resets test logic, too".
+
+This warning doesn't indicate any serious problem, as long as you don't want to
+debug your core right out of reset. Your .cfg file specified @option{jtag_reset
+trst_and_srst srst_pulls_trst} to tell OpenOCD that either your board,
+your debugger or your target uC (e.g. LPC2000) can't assert the two reset signals
+independently. With this setup, it's not possible to halt the core right out of
+reset, everything else should work fine.
+
+@item @b{USB Power} When using OpenOCD in conjunction with Amontec JTAGkey and the Yagarto
+toolchain (Eclipse, arm-elf-gcc, arm-elf-gdb), the debugging seems to be
+unstable. When single-stepping over large blocks of code, GDB and OpenOCD
+quit with an error message. Is there a stability issue with OpenOCD?
+
+No, this is not a stability issue concerning OpenOCD. Most users have solved
+this issue by simply using a self-powered USB hub, which they connect their
+Amontec JTAGkey to. Apparently, some computers do not provide a USB power
+supply stable enough for the Amontec JTAGkey to be operated.
+
+@b{Laptops running on battery have this problem too...}
+
+@item @b{USB Power} When using the Amontec JTAGkey, sometimes OpenOCD crashes with the
+following error messages: "Error: ft2232.c:201 ft2232_read(): FT_Read returned:
+4" and "Error: ft2232.c:365 ft2232_send_and_recv(): couldn't read from FT2232".
+What does that mean and what might be the reason for this?
+
+First of all, the reason might be the USB power supply. Try using a self-powered
+hub instead of a direct connection to your computer. Secondly, the error code 4
+corresponds to an FT_IO_ERROR, which means that the driver for the FTDI USB
+chip ran into some sort of error - this points us to a USB problem.
+
+@item @b{GDB Disconnects} When using the Amontec JTAGkey, sometimes OpenOCD crashes with the following
+error message: "Error: gdb_server.c:101 gdb_get_char(): read: 10054".
+What does that mean and what might be the reason for this?
+
+Error code 10054 corresponds to WSAECONNRESET, which means that the debugger (GDB)
+has closed the connection to OpenOCD. This might be a GDB issue.
+
+@item @b{LPC2000 Flash} In the configuration file in the section where flash device configurations
+are described, there is a parameter for specifying the clock frequency
+for LPC2000 internal flash devices (e.g.  @option{flash bank lpc2000
+0x0 0x40000 0 0 0 lpc2000_v1 14746 calc_checksum}), which must be
+specified in kilohertz. However, I do have a quartz crystal of a
+frequency that contains fractions of kilohertz (e.g. 14,745,600 Hz,
+i.e. 14,745.600 kHz).  Is it possible to specify real numbers for the
+clock frequency?
+
+No. The clock frequency specified here must be given as an integral number.
+However, this clock frequency is used by the In-Application-Programming (IAP)
+routines of the LPC2000 family only, which seems to be very tolerant concerning
+the given clock frequency, so a slight difference between the specified clock
+frequency and the actual clock frequency will not cause any trouble.
+
+@item @b{Command Order} Do I have to keep a specific order for the commands in the configuration file?
+
+Well, yes and no. Commands can be given in arbitrary order, yet the
+devices listed for the JTAG scan chain must be given in the right
+order (jtag newdevice), with the device closest to the TDO-Pin being
+listed first. In general, whenever objects of the same type exist
+which require an index number, then these objects must be given in the
+right order (jtag newtap, targets and flash banks - a target
+references a jtag newtap and a flash bank references a target).
+
+You can use the ``scan_chain'' command to verify and display the tap order.
+
+@item @b{JTAG Tap Order} JTAG tap order - command order
+
+Many newer devices have multiple JTAG taps. For example: ST
+Microsystems STM32 chips have two taps, a ``boundary scan tap'' and
+``Cortex-M3'' tap.  Example: The STM32 reference manual, Document ID:
+RM0008, Section 26.5, Figure 259, page 651/681, the ``TDI'' pin is
+connected to the boundary scan tap, which then connects to the
+Cortex-M3 tap, which then connects to the TDO pin.
+
+Thus, the proper order for the STM32 chip is: (1) The Cortex-M3, then
+(2) The boundary scan tap. If your board includes an additional JTAG
+chip in the scan chain (for example a Xilinx CPLD or FPGA) you could
+place it before or after the STM32 chip in the chain. For example:
+
+@itemize @bullet
+@item OpenOCD_TDI(output) -> STM32 TDI Pin (BS Input)
+@item STM32 BS TDO (output) -> STM32 Cortex-M3 TDI (input)
+@item STM32 Cortex-M3 TDO (output) -> SM32 TDO Pin
+@item STM32 TDO Pin (output) -> Xilinx TDI Pin (input)
+@item Xilinx TDO Pin -> OpenOCD TDO (input)
+@end itemize
+
+The ``jtag device'' commands would thus be in the order shown below. Note:
+
+@itemize @bullet
+@item jtag newtap Xilinx tap -irlen ...
+@item jtag newtap stm32  cpu -irlen ...
+@item jtag newtap stm32  bs  -irlen ...
+@item # Create the debug target and say where it is
+@item target create stm32.cpu -chain-position stm32.cpu ...
+@end itemize
+
+
+@item @b{SYSCOMP} Sometimes my debugging session terminates with an error. When I look into the
+log file, I can see these error messages: Error: arm7_9_common.c:561
+arm7_9_execute_sys_speed(): timeout waiting for SYSCOMP
+
+TODO.
+							
+@end enumerate
+
+@node Tcl Crash Course
+@chapter Tcl Crash Course
+@cindex Tcl 
+
+Not everyone knows Tcl - this is not intended to be a replacement for
+learning Tcl, the intent of this chapter is to give you some idea of
+how the Tcl scripts work.
+
+This chapter is written with two audiences in mind. (1) OpenOCD users
+who need to understand a bit more of how JIM-Tcl works so they can do
+something useful, and (2) those that want to add a new command to
+OpenOCD.
+
+@section Tcl Rule #1
+There is a famous joke, it goes like this:
+@enumerate
+@item Rule #1: The wife is always correct
+@item Rule #2: If you think otherwise, See Rule #1
+@end enumerate
+
+The Tcl equal is this:
+
+@enumerate
+@item Rule #1: Everything is a string
+@item Rule #2: If you think otherwise, See Rule #1
+@end enumerate
+
+As in the famous joke, the consequences of Rule #1 are profound. Once
+you understand Rule #1, you will understand Tcl.
+
+@section Tcl Rule #1b
+There is a second pair of rules.
+@enumerate
+@item Rule #1: Control flow does not exist. Only commands
+@* For example: the classic FOR loop or IF statement is not a control
+flow item, they are commands, there is no such thing as control flow
+in Tcl.
+@item Rule #2: If you think otherwise, See Rule #1
+@* Actually what happens is this: There are commands that by
+convention, act like control flow key words in other languages. One of
+those commands is the word ``for'', another command is ``if''.
+@end enumerate
+
+@section Per Rule #1 - All Results are strings
+Every Tcl command results in a string. The word ``result'' is used
+deliberatly. No result is just an empty string. Remember: @i{Rule #1 -
+Everything is a string}
+
+@section Tcl Quoting Operators
+In life of a Tcl script, there are two important periods of time, the
+difference is subtle.
+@enumerate
+@item Parse Time
+@item Evaluation Time
+@end enumerate
+
+The two key items here are how ``quoted things'' work in Tcl. Tcl has
+three primary quoting constructs, the [square-brackets] the
+@{curly-braces@} and ``double-quotes''
+
+By now you should know $VARIABLES always start with a $DOLLAR
+sign. BTW: To set a variable, you actually use the command ``set'', as
+in ``set VARNAME VALUE'' much like the ancient BASIC langauge ``let x
+= 1'' statement, but without the equal sign.
+
+@itemize @bullet
+@item @b{[square-brackets]}
+@* @b{[square-brackets]} are command substitutions. It operates much
+like Unix Shell `back-ticks`. The result of a [square-bracket]
+operation is exactly 1 string. @i{Remember Rule #1 - Everything is a
+string}. These two statements are roughly identical:
+@example
+    # bash example
+    X=`date`
+    echo "The Date is: $X"
+    # Tcl example
+    set X [date]
+    puts "The Date is: $X"
+@end example
+@item @b{``double-quoted-things''}
+@* @b{``double-quoted-things''} are just simply quoted
+text. $VARIABLES and [square-brackets] are expanded in place - the
+result however is exactly 1 string. @i{Remember Rule #1 - Everything
+is a string}
+@example
+    set x "Dinner"
+    puts "It is now \"[date]\", $x is in 1 hour"
+@end example
+@item @b{@{Curly-Braces@}}
+@*@b{@{Curly-Braces@}} are magic: $VARIABLES and [square-brackets] are
+parsed, but are NOT expanded or executed. @{Curly-Braces@} are like
+'single-quote' operators in BASH shell scripts, with the added
+feature: @{curly-braces@} can be nested, single quotes can not.  @{@{@{this is
+nested 3 times@}@}@} NOTE: [date] is perhaps a bad example, as of
+28/nov/2008, Jim/OpenOCD does not have a date command.
+@end itemize
+
+@section Consequences of Rule 1/2/3/4
+
+The consequences of Rule 1 are profound.
+
+@subsection Tokenisation & Execution.
+
+Of course, whitespace, blank lines and #comment lines are handled in
+the normal way.
+
+As a script is parsed, each (multi) line in the script file is
+tokenised and according to the quoting rules. After tokenisation, that
+line is immedatly executed.
+
+Multi line statements end with one or more ``still-open''
+@{curly-braces@} which - eventually - closes a few lines later.
+
+@subsection Command Execution
+
+Remember earlier: There are no ``control flow''
+statements in Tcl. Instead there are COMMANDS that simply act like
+control flow operators.
+
+Commands are executed like this:
+
+@enumerate 
+@item Parse the next line into (argc) and (argv[]).
+@item Look up (argv[0]) in a table and call its function.
+@item Repeat until End Of File.
+@end enumerate
+
+It sort of works like this:
+@example
+    for(;;)@{
+        ReadAndParse( &argc, &argv );
+
+        cmdPtr = LookupCommand( argv[0] );
+
+        (*cmdPtr->Execute)( argc, argv );
+    @}
+@end example
+
+When the command ``proc'' is parsed (which creates a procedure
+function) it gets 3 parameters on the command line. @b{1} the name of
+the proc (function), @b{2} the list of parameters, and @b{3} the body
+of the function. Not the choice of words: LIST and BODY. The PROC
+command stores these items in a table somewhere so it can be found by
+``LookupCommand()''
+
+@subsection The FOR command
+
+The most interesting command to look at is the FOR command.  In Tcl,
+the FOR command is normally implemented in C. Remember, FOR is a
+command just like any other command.
+
+When the ascii text containing the FOR command is parsed, the parser
+produces 5 parameter strings, @i{(If in doubt: Refer to Rule #1)} they
+are:
+
+@enumerate 0
+@item The ascii text 'for'
+@item The start text
+@item The test expression
+@item The next text
+@item The body text
+@end enumerate
+
+Sort of reminds you of ``main( int argc, char **argv )'' does it not?
+Remember @i{Rule #1 - Everything is a string.} The key point is this:
+Often many of those parameters are in @{curly-braces@} - thus the
+variables inside are not expanded or replaced until later.
+
+Remember that every Tcl command looks like the classic ``main( argc,
+argv )'' function in C. In JimTCL - they actually look like this:
+
+@example
+int
+MyCommand( Jim_Interp *interp,
+           int *argc,
+           Jim_Obj * const *argvs );
+@end example
+
+Real Tcl is nearly identical. Although the newer versions have
+introduced a byte-code parser and intepreter, but at the core, it
+still operates in the same basic way.
+
+@subsection FOR command implementation
+
+To understand Tcl it is perhaps most helpful to see the FOR
+command. Remember, it is a COMMAND not a control flow structure.
+
+In Tcl there are two underlying C helper functions.
+
+Remember Rule #1 - You are a string.
+
+The @b{first} helper parses and executes commands found in an ascii
+string. Commands can be seperated by semicolons, or newlines. While
+parsing, variables are expanded via the quoting rules.
+
+The @b{second} helper evaluates an ascii string as a numerical
+expression and returns a value.
+
+Here is an example of how the @b{FOR} command could be
+implemented. The pseudo code below does not show error handling.
+@example
+void Execute_AsciiString( void *interp, const char *string );
+
+int Evaluate_AsciiExpression( void *interp, const char *string );
+
+int
+MyForCommand( void *interp,
+              int argc,
+              char **argv )
+@{
+   if( argc != 5 )@{
+       SetResult( interp, "WRONG number of parameters");
+       return ERROR;
+   @}
+   
+   // argv[0] = the ascii string just like C
+
+   // Execute the start statement.
+   Execute_AsciiString( interp, argv[1] );
+
+   // Top of loop test
+   for(;;)@{
+        i = Evaluate_AsciiExpression(interp, argv[2]);
+        if( i == 0 )
+            break;
+
+        // Execute the body
+        Execute_AsciiString( interp, argv[3] );
+
+        // Execute the LOOP  part
+        Execute_AsciiString( interp, argv[4] );
+    @}
+
+    // Return no error
+    SetResult( interp, "" );
+    return SUCCESS;
+@}
+@end example        
+
+Every other command IF, WHILE, FORMAT, PUTS, EXPR, everything works
+in the same basic way.
+
+@section OpenOCD Tcl Usage
+
+@subsection source and find commands
+@b{Where:} In many configuration files
+@* Example: @b{ source [find FILENAME] }
+@*Remember the parsing rules
+@enumerate
+@item The FIND command is in square brackets.
+@* The FIND command is executed with the parameter FILENAME. It should
+find the full path to the named file. The RESULT is a string, which is
+substituted on the orginal command line.
+@item The command source is executed with the resulting filename.
+@* SOURCE reads a file and executes as a script.
+@end enumerate
+@subsection format command
+@b{Where:} Generally occurs in numerous places.  
+@* Tcl has no command like @b{printf()}, instead it has @b{format}, which is really more like
+@b{sprintf()}.
+@b{Example}
+@example
+    set x 6
+    set y 7
+    puts [format "The answer: %d" [expr $x * $y]]
+@end example
+@enumerate
+@item The SET command creates 2 variables, X and Y.
+@item The double [nested] EXPR command performs math
+@* The EXPR command produces numerical result as a string. 
+@* Refer to Rule #1
+@item The format command is executed, producing a single string
+@* Refer to Rule #1.
+@item The PUTS command outputs the text.
+@end enumerate
+@subsection Body or Inlined Text
+@b{Where:} Various TARGET scripts.
+@example
+#1 Good
+   proc someproc @{@} @{
+       ... multiple lines of stuff ...
+   @}
+   $_TARGETNAME configure -event FOO  someproc
+#2 Good - no variables
+   $_TARGETNAME confgure -event foo "this ; that;"
+#3 Good Curly Braces
+   $_TARGETNAME configure -event FOO @{
+        puts "Time: [date]"
+   @}
+#4 DANGER DANGER DANGER
+   $_TARGETNAME configure -event foo "puts \"Time: [date]\""
+@end example
+@enumerate 
+@item The $_TARGETNAME is an OpenOCD variable convention.
+@*@b{$_TARGETNAME} represents the last target created, the value changes
+each time a new target is created. Remember the parsing rules. When
+the ascii text is parsed, the @b{$_TARGETNAME} becomes a simple string,
+the name of the target which happens to be a TARGET (object)
+command.
+@item The 2nd parameter to the @option{-event} parameter is a TCBODY
+@*There are 4 examples:
+@enumerate
+@item The TCLBODY is a simple string that happens to be a proc name
+@item The TCLBODY is several simple commands seperated by semicolons
+@item The TCLBODY is a multi-line @{curly-brace@} quoted string
+@item The TCLBODY is a string with variables that get expanded.
+@end enumerate
+
+In the end, when the target event FOO occurs the TCLBODY is
+evaluated. Method @b{#1} and @b{#2} are functionally identical.  For
+Method @b{#3} and @b{#4} it is more interesting. What is the TCLBODY?
+
+Remember the parsing rules. In case #3, @{curly-braces@} mean the
+$VARS and [square-brackets] are expanded later, when the EVENT occurs,
+and the text is evaluated. In case #4, they are replaced before the
+``Target Object Command'' is executed. This occurs at the same time
+$_TARGETNAME is replaced. In case #4 the date will never
+change. @{BTW: [date] is perhaps a bad example, as of 28/nov/2008,
+Jim/OpenOCD does not have a date command@}
+@end enumerate
+@subsection Global Variables
+@b{Where:} You might discover this when writing your own procs @* In
+simple terms: Inside a PROC, if you need to access a global variable
+you must say so. See also ``upvar''. Example:
+@example
+proc myproc @{ @} @{
+     set y 0  #Local variable Y
+     global x #Global variable X
+     puts [format "X=%d, Y=%d" $x $y]
+@}
+@end example
+@section Other Tcl Hacks
+@b{Dynamic variable creation}
+@example
+# Dynamically create a bunch of variables.
+for @{ set x 0  @} @{ $x < 32 @} @{ set x [expr $x + 1]@} @{
+    # Create var name
+    set vn [format "BIT%d" $x]
+    # Make it a global
+    global $vn
+    # Set it.
+    set $vn   [expr (1 << $x)]
+@}
+@end example
+@b{Dynamic proc/command creation}
+@example
+# One "X" function - 5 uart functions.
+foreach who @{A B C D E@}
+   proc [format "show_uart%c" $who] @{ @} "show_UARTx $who"
+@}
+@end example
+
+@node Target Library
+@chapter Target Library
+@cindex Target Library
+
+OpenOCD comes with a target configuration script library. These scripts can be
+used as-is or serve as a starting point.
+
+The target library is published together with the OpenOCD executable and 
+the path to the target library is in the OpenOCD script search path.
+Similarly there are example scripts for configuring the JTAG interface. 
+
+The command line below uses the example parport configuration script
+that ship with OpenOCD, then configures the str710.cfg target and
+finally issues the init and reset commands. The communication speed
+is set to 10kHz for reset and 8MHz for post reset.
+
+@example
+openocd -f interface/parport.cfg -f target/str710.cfg -c "init" -c "reset"
+@end example
+
+To list the target scripts available:
+
+@example
+$ ls  /usr/local/lib/openocd/target
+
+arm7_fast.cfg    lm3s6965.cfg  pxa255.cfg      stm32.cfg   xba_revA3.cfg
+at91eb40a.cfg    lpc2148.cfg   pxa255_sst.cfg  str710.cfg  zy1000.cfg
+at91r40008.cfg   lpc2294.cfg   sam7s256.cfg    str912.cfg
+at91sam9260.cfg  nslu2.cfg     sam7x256.cfg    wi-9c.cfg
+@end example
+
+@include fdl.texi
+
+@node OpenOCD Index
+@comment DO NOT use the plain word ``Index'', reason: CYGWIN filename
+@comment case issue with ``Index.html'' and ``index.html''
+@comment Occurs when creating ``--html --no-split'' output
+@comment This fix is based on: http://sourceware.org/ml/binutils/2006-05/msg00215.html
+@unnumbered OpenOCD Index
+
+@printindex cp
+
+@bye
