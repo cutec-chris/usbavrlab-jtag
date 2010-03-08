@@ -1,0 +1,733 @@
+AC_PREREQ(2.59)
+AC_INIT(configure.in)
+
+AC_CANONICAL_HOST
+
+AC_SEARCH_LIBS([ioperm], [ioperm])
+AC_SEARCH_LIBS([dlopen], [dl])
+
+AC_CHECK_HEADERS(jtag_minidriver.h)
+AC_CHECK_HEADERS(sys/param.h)
+AC_CHECK_HEADERS(sys/time.h)
+AC_CHECK_HEADERS(elf.h)
+AC_CHECK_HEADERS(strings.h)
+AC_CHECK_HEADERS(stdbool.h)
+
+AC_HEADER_TIME
+
+AC_C_BIGENDIAN
+
+AC_CHECK_FUNCS(strndup)
+AC_CHECK_FUNCS(strnlen)
+AC_CHECK_FUNCS(gettimeofday)
+AC_CHECK_FUNCS(usleep)
+AC_CHECK_FUNCS(vasprintf)
+
+build_bitbang=no
+build_bitq=no
+is_cygwin=no
+is_mingw=no
+is_win32=no
+build_release=yes
+
+AC_ARG_ENABLE(release,
+	AS_HELP_STRING([--enable-release], [Enable Release Build, default no]),
+	[build_release=$enableval], [build_release=no])
+
+if test $cross_compiling = no; then
+	if test $build_release = no; then
+		# check we can find guess-rev.sh
+		AC_CHECK_FILE("$srcdir/guess-rev.sh", build_release=no, build_release=yes)
+	fi
+fi
+
+# We are not *ALWAYS* being installed in the standard place.
+# We may be installed in a "tool-build" specific location.
+# Normally with other packages - as part of a tool distro.
+# Thus - we should search that 'libdir' also.
+#
+# And - if we are being installed there - the odds are
+# The libraries unique to what we are are there too.
+#
+
+# Expand nd deal with NONE - just like configure will do later
+OCDprefix=$prefix
+OCDxprefix=$exec_prefix
+test x"$OCDprefix"  = xNONE && OCDprefix=$ac_default_prefix
+# Let make expand exec_prefix.
+test x"$OCDxprefix" = xNONE && OCDxprefix="$OCDprefix"
+
+# what matters is the "exec-prefix"
+if test "$OCDxprefix" != "$ac_default_prefix"
+then
+    # We are installing in a non-standard place
+    # Nonstandard --prefix and/or --exec-prefix
+    # We have an override of some sort.
+    # use build specific install library dir
+    
+    LDFLAGS="$LDFLAGS -L$OCDxprefix/lib"
+    # RPATH becomes an issue on Linux only
+    if test $host_os = linux-gnu || test $host_os = linux ; then
+	LDFLAGS="$LDFLAGS -Wl,-rpath,$OCDxprefix/lib"
+    fi
+    # The "INCDIR" is also usable
+    CFLAGS="$CFLAGS -I$includedir"
+fi
+
+AC_ARG_WITH(ftd2xx,
+   AS_HELP_STRING([--with-ftd2xx=<PATH>],[This option has been removed.]),
+[
+# Option Given.
+cat << __EOF__
+
+The option: --with-ftd2xx=<PATH> has been removed.
+On Linux, the new option is:
+  
+  --with-ftd2xx-linux-tardir=/path/to/files
+
+Where <path> is the path the the directory where the "tar.gz" file
+from FTDICHIP.COM was unpacked, for example:
+
+  --with-ftd2xx-linux-tardir=/home/duane/libftd2xx-linux-tardir=/home/duane/libftd2xx0.4.16
+
+On Cygwin/MingW32, the new option is:
+
+  --with-ftd2xx-win32-zipdir=/path/to/files
+
+Where <path> is the path to the directory where the "zip" file from
+FTDICHIP.COM was unpacked, for example:
+
+  --with-ftd2xx-win32-zipdir=/home/duane/ftd2xx.cdm.files
+
+__EOF__
+
+   AC_MSG_ERROR([Sorry Cannot continue])
+],
+[ 
+# Option not given
+true
+]
+)
+
+#========================================
+# FTD2XXX support comes in 3 forms.
+#    (1) win32 - via a zip file
+#    (2) linux - via a tar file
+#    (3) linux/cygwin/mingw - via libftdi
+#
+# In case (1) and (2) we need to know where the package was unpacked.
+
+AC_ARG_WITH(ftd2xx-win32-zipdir,
+  AS_HELP_STRING([--with-ftd2xx-win32-zipdir],[Where (CYGWIN/MINGW) the zip file from ftdichip.com was unpacked <default=search>]),
+  [
+  # option present
+  if test -d $with_ftd2xx_win32_zipdir
+  then
+	with_ftd2xx_win32_zipdir=`cd $with_ftd2xx_win32_zipdir && pwd`
+	AC_MSG_NOTICE([Using: ftdichip.com library: $with_ftd2xx_win32_zipdir])
+  else
+	AC_MSG_ERROR([Parameter to --with-ftd2xx-win32-zipdir is not a dir: $with_ftd2xx_win32_zipdir])
+  fi
+  ],
+  [
+  # not given
+  true
+  ]
+)
+
+AC_ARG_WITH(ftd2xx-linux-tardir,
+  AS_HELP_STRING([--with-ftd2xx-linux-tardir], [Where (Linux/Unix) the tar file from ftdichip.com was unpacked <default=search>]),
+  [
+  # Option present
+  if test $is_win32 = yes ; then
+     AC_MSG_ERROR([The option: --with-ftd2xx-linux-tardir is only usable on linux])
+  fi
+  if test -d $with_ftd2xx_linux_tardir
+  then
+	with_ftd2xx_linux_tardir=`cd $with_ftd2xx_linux_tardir && pwd`
+	AC_MSG_NOTICE([Using: ftdichip.com library: $with_ftd2xx_linux_tardir])
+  else
+	AC_MSG_ERROR([Parameter to --with-ftd2xx-linux-tardir is not a dir: $with_ftd2xx_linux_tardir])
+  fi
+  ],
+  [
+  # Not given 
+  true
+  ]
+)
+
+AC_ARG_WITH(ftd2xx-lib,
+	AS_HELP_STRING([--with-ftd2xx-lib], [Use static or shared ftd2xx libs on default static]),
+[
+case "$withval" in
+static)
+	with_ftd2xx_lib=$withval
+	;;
+shared)
+	with_ftd2xx_lib=$withval
+	;;
+*)
+	AC_MSG_ERROR([Option: --with-ftd2xx-lib=static or --with-ftd2xx-lib=shared not, $withval])
+	;;
+esac
+],
+[
+	# Default is static - it is simpler :-(
+	with_ftd2xx_lib=static
+]
+)
+
+AC_ARG_ENABLE(gccwarnings,
+	AS_HELP_STRING([--enable-gccwarnings], [Enable compiler warnings, default yes]),
+	[gcc_warnings=$enableval], [gcc_warnings=yes])
+
+AC_ARG_ENABLE(parport,
+  AS_HELP_STRING([--enable-parport], [Enable building the pc parallel port driver]), 
+  [build_parport=$enableval], [build_parport=no])
+
+AC_ARG_ENABLE(dummy,
+  AS_HELP_STRING([--enable-dummy], [Enable building the dummy port driver]), 
+  [build_dummy=$enableval], [build_dummy=no])
+  
+case "${host_cpu}" in 
+  i?86|x86*)
+    AC_ARG_ENABLE(parport_ppdev,
+      AS_HELP_STRING([--enable-parport_ppdev], [Enable use of ppdev (/dev/parportN) for parport]), 
+      [parport_use_ppdev=$enableval], [parport_use_ppdev=no])
+    ;;
+  *) 
+    parport_use_ppdev=yes
+    ;;
+esac
+
+AC_ARG_ENABLE(ft2232_libftdi,
+  AS_HELP_STRING([--enable-ft2232_libftdi], [Enable building support for FT2232 based devices using the libftdi driver, opensource alternate of FTD2XX]), 
+  [build_ft2232_libftdi=$enableval], [build_ft2232_libftdi=no])
+
+AC_ARG_ENABLE(ft2232_ftd2xx,
+  AS_HELP_STRING([--enable-ft2232_ftd2xx], [Enable building support for FT2232 based devices using the FTD2XX driver from ftdichip.com]), 
+  [build_ft2232_ftd2xx=$enableval], [build_ft2232_ftd2xx=no])
+ 
+AC_ARG_ENABLE(amtjtagaccel,
+  AS_HELP_STRING([--enable-amtjtagaccel], [Enable building the Amontec JTAG-Accelerator driver]), 
+  [build_amtjtagaccel=$enableval], [build_amtjtagaccel=no])
+
+AC_ARG_ENABLE(ecosboard,
+  AS_HELP_STRING([--enable-ecosboard], [Enable building support for eCosBoard based JTAG debugger]), 
+  [build_ecosboard=$enableval], [build_ecosboard=no])
+
+AC_ARG_ENABLE(ioutil,
+  AS_HELP_STRING([--enable-ioutil], [Enable ioutil functions - useful for standalone OpenOCD implementations]), 
+  [build_ioutil=$enableval], [build_ioutil=no])
+
+AC_ARG_ENABLE(httpd,
+  AS_HELP_STRING([--enable-httpd], [Enable builtin httpd server - useful for standalone OpenOCD implementations]), 
+  [build_httpd=$enableval], [build_httpd=no])
+
+case "${host_cpu}" in 
+  arm*)
+    AC_ARG_ENABLE(ep93xx,
+      AS_HELP_STRING([--enable-ep93xx], [Enable building support for EP93xx based SBCs]), 
+      [build_ep93xx=$enableval], [build_ep93xx=no])
+
+    AC_ARG_ENABLE(at91rm9200,
+      AS_HELP_STRING([--enable-at91rm9200], [Enable building support for AT91RM9200 based SBCs]),
+      [build_at91rm9200=$enableval], [build_at91rm9200=no])
+    ;;
+    
+  *) 
+    build_ep93xx=no
+    build_at91rm9200=no
+    ;;
+esac
+
+AC_ARG_ENABLE(gw16012,
+  AS_HELP_STRING([--enable-gw16012], [Enable building support for the Gateworks GW16012 JTAG Programmer]),
+  [build_gw16012=$enableval], [build_gw16012=no])
+
+AC_ARG_ENABLE(presto_libftdi,
+  AS_HELP_STRING([--enable-presto_libftdi], [Enable building support for ASIX Presto Programmer using the libftdi driver]),
+  [build_presto_libftdi=$enableval], [build_presto_libftdi=no])
+
+AC_ARG_ENABLE(presto_ftd2xx,
+  AS_HELP_STRING([--enable-presto_ftd2xx], [Enable building support for ASIX Presto Programmer using the FTD2XX driver]),
+  [build_presto_ftd2xx=$enableval], [build_presto_ftd2xx=no])
+
+AC_ARG_ENABLE(usbprog,
+  AS_HELP_STRING([--enable-usbprog], [Enable building support for the usbprog JTAG Programmer]),
+  [build_usbprog=$enableval], [build_usbprog=no])
+
+AC_ARG_ENABLE(oocd_trace,
+  AS_HELP_STRING([--enable-oocd_trace], [Enable building support for the OpenOCD+trace ETM capture device]),
+  [build_oocd_trace=$enableval], [build_oocd_trace=no])
+
+AC_ARG_ENABLE(jlink,
+  AS_HELP_STRING([--enable-jlink], [Enable building support for the Segger J-Link JTAG Programmer]),
+  [build_jlink=$enableval], [build_jlink=no])
+
+AC_ARG_ENABLE(vsllink,
+  AS_HELP_STRING([--enable-vsllink], [Enable building support for the Versaloon-Link JTAG Programmer]),
+  [build_vsllink=$enableval], [build_vsllink=no])
+
+AC_ARG_ENABLE(rlink,
+  AS_HELP_STRING([--enable-rlink], [Enable building support for the Raisonance RLink JTAG Programmer]),
+  [build_rlink=$enableval], [build_rlink=no])
+
+AC_ARG_ENABLE(arm-jtag-ew,
+  AS_HELP_STRING([--enable-arm-jtag-ew], [Enable building support for the Olimex ARM-JTAG-EW Programmer]),
+  [build_armjtagew=$enableval], [build_armjtagew=no])
+
+case $host in 
+  *-cygwin*) 
+    is_win32=yes
+
+    AC_ARG_ENABLE(parport_giveio,
+    AS_HELP_STRING([--enable-parport_giveio], [Enable use of giveio for parport instead of ioperm]), 
+    [parport_use_giveio=$enableval], [parport_use_giveio=no])
+	
+	AC_COMPILE_IFELSE(AC_LANG_PROGRAM([],[return __MINGW32__;]),[is_mingw=yes],[is_mingw=no])
+	if test $is_mingw = yes; then
+		AC_DEFINE(IS_MINGW, 1, [1 if building for MinGW.])
+		parport_use_giveio=yes
+		is_cygwin=no
+	else
+		is_cygwin=yes
+		AC_DEFINE(IS_CYGWIN, 1, [1 if building for Cygwin.])
+	fi
+	
+    AC_DEFINE(IS_WIN32, 1, [1 if building for Win32.])
+    ;; 
+  *-mingw*) 
+    is_mingw=yes
+    is_win32=yes
+
+    parport_use_giveio=yes
+
+    AC_DEFINE(IS_MINGW, 1, [1 if building for MinGW.])
+    AC_DEFINE(IS_WIN32, 1, [1 if building for Win32.])
+    ;; 
+  *) 
+	parport_use_giveio=no
+    AC_DEFINE(IS_CYGWIN, 0, [0 if not building for Cygwin.])
+    AC_DEFINE(IS_WIN32, 0, [0 if not building for Win32.])
+    ;;
+esac
+
+if test $build_parport = yes; then
+  build_bitbang=yes
+  AC_DEFINE(BUILD_PARPORT, 1, [1 if you want parport.])
+else
+  AC_DEFINE(BUILD_PARPORT, 0, [0 if you don't want parport.])
+fi
+
+if test $build_dummy = yes; then
+  build_bitbang=yes
+  AC_DEFINE(BUILD_DUMMY, 1, [1 if you want dummy driver.])
+else
+  AC_DEFINE(BUILD_DUMMY, 0, [0 if you don't want dummy driver.])
+fi
+
+if test $build_ep93xx = yes; then
+  build_bitbang=yes
+  AC_DEFINE(BUILD_EP93XX, 1, [1 if you want ep93xx.])
+else
+  AC_DEFINE(BUILD_EP93XX, 0, [0 if you don't want ep93xx.])
+fi
+
+if test $build_ecosboard = yes; then
+  build_bitbang=yes
+  AC_DEFINE(BUILD_ECOSBOARD, 1, [1 if you want eCosBoard.])
+else
+  AC_DEFINE(BUILD_ECOSBOARD, 0, [0 if you don't want eCosBoard.])
+fi
+
+if test $build_ioutil = yes; then
+  AC_DEFINE(BUILD_IOUTIL, 1, [1 if you want ioutils.])
+else
+  AC_DEFINE(BUILD_IOUTIL, 0, [0 if you don't want ioutils.])
+fi
+
+if test $build_httpd = yes; then
+  AC_DEFINE(BUILD_HTTPD, 1, [1 if you want httpd.])
+else
+  AC_DEFINE(BUILD_HTTPD, 0, [0 if you don't want httpd.])
+fi
+
+if test $build_at91rm9200 = yes; then
+  build_bitbang=yes
+  AC_DEFINE(BUILD_AT91RM9200, 1, [1 if you want at91rm9200.])
+else
+  AC_DEFINE(BUILD_AT91RM9200, 0, [0 if you don't want at91rm9200.])
+fi
+
+if test $parport_use_ppdev = yes; then
+  AC_DEFINE(PARPORT_USE_PPDEV, 1, [1 if you want parport to use ppdev.])
+else
+  AC_DEFINE(PARPORT_USE_PPDEV, 0, [0 if you don't want parport to use ppdev.])
+fi
+
+if test $parport_use_giveio = yes; then
+  AC_DEFINE(PARPORT_USE_GIVEIO, 1, [1 if you want parport to use giveio.])
+else
+  AC_DEFINE(PARPORT_USE_GIVEIO, 0, [0 if you don't want parport to use giveio.])
+fi
+
+if test $build_bitbang = yes; then
+  AC_DEFINE(BUILD_BITBANG, 1, [1 if you want a bitbang interface.])
+else
+  AC_DEFINE(BUILD_BITBANG, 0, [0 if you don't want a bitbang interface.])
+fi
+
+if test $build_ft2232_libftdi = yes; then
+  AC_DEFINE(BUILD_FT2232_LIBFTDI, 1, [1 if you want libftdi ft2232.])
+else
+  AC_DEFINE(BUILD_FT2232_LIBFTDI, 0, [0 if you don't want libftdi ft2232.])
+fi
+
+if test $build_ft2232_ftd2xx = yes; then
+  AC_DEFINE(BUILD_FT2232_FTD2XX, 1, [1 if you want ftd2xx ft2232.])
+else
+  AC_DEFINE(BUILD_FT2232_FTD2XX, 0, [0 if you don't want ftd2xx ft2232.])
+fi
+
+if test $build_amtjtagaccel = yes; then
+  AC_DEFINE(BUILD_AMTJTAGACCEL, 1, [1 if you want the Amontec JTAG-Accelerator driver.])
+else
+  AC_DEFINE(BUILD_AMTJTAGACCEL, 0, [0 if you don't want the Amontec JTAG-Accelerator driver.])
+fi
+
+if test $build_gw16012 = yes; then
+  AC_DEFINE(BUILD_GW16012, 1, [1 if you want the Gateworks GW16012 driver.])
+else
+  AC_DEFINE(BUILD_GW16012, 0, [0 if you don't want the Gateworks GW16012 driver.])
+fi
+
+if test $build_presto_libftdi = yes; then
+  build_bitq=yes
+  AC_DEFINE(BUILD_PRESTO_LIBFTDI, 1, [1 if you want the ASIX PRESTO driver using libftdi.])
+else
+  AC_DEFINE(BUILD_PRESTO_LIBFTDI, 0, [0 if you don't want the ASIX PRESTO driver using libftdi.])
+fi
+
+if test $build_presto_ftd2xx = yes; then
+  build_bitq=yes
+  AC_DEFINE(BUILD_PRESTO_FTD2XX, 1, [1 if you want the ASIX PRESTO driver using FTD2XX.])
+else
+  AC_DEFINE(BUILD_PRESTO_FTD2XX, 0, [0 if you don't want the ASIX PRESTO driver using FTD2XX.])
+fi
+
+if test $build_bitq = yes; then
+  AC_DEFINE(BUILD_BITQ, 1, [1 if you want a bitq interface.])
+else
+  AC_DEFINE(BUILD_BITQ, 0, [0 if you don't want a bitq interface.])
+fi
+
+if test $build_usbprog = yes; then
+  AC_DEFINE(BUILD_USBPROG, 1, [1 if you want the usbprog JTAG driver.])
+else
+  AC_DEFINE(BUILD_USBPROG, 0, [0 if you don't want the usbprog JTAG driver.])
+fi
+
+if test $build_oocd_trace = yes; then
+  AC_DEFINE(BUILD_OOCD_TRACE, 1, [1 if you want the OpenOCD+trace ETM capture driver.])
+else
+  AC_DEFINE(BUILD_OOCD_TRACE, 0, [0 if you don't want the OpenOCD+trace ETM capture driver.])
+fi
+
+if test $build_jlink = yes; then
+  AC_DEFINE(BUILD_JLINK, 1, [1 if you want the J-Link JTAG driver.])
+else
+  AC_DEFINE(BUILD_JLINK, 0, [0 if you don't want the J-Link JTAG driver.])
+fi
+
+if test $build_vsllink = yes; then
+  AC_DEFINE(BUILD_VSLLINK, 1, [1 if you want the Versaloon-Link JTAG driver.])
+else
+  AC_DEFINE(BUILD_VSLLINK, 0, [0 if you don't want the Versaloon-Link JTAG driver.])
+fi
+
+if test $build_rlink = yes; then
+  AC_DEFINE(BUILD_RLINK, 1, [1 if you want the RLink JTAG driver.])
+else
+  AC_DEFINE(BUILD_RLINK, 0, [0 if you don't want the RLink JTAG driver.])
+fi
+
+if test $build_armjtagew = yes; then
+  AC_DEFINE(BUILD_ARMJTAGEW, 1, [1 if you want the ARM-JTAG-EW JTAG driver.])
+else
+  AC_DEFINE(BUILD_ARMJTAGEW, 0, [0 if you don't want the ARM-JTAG-EW JTAG driver.])
+fi
+
+#-- Deal with MingW/Cygwin FTD2XX issues
+
+if test $is_win32 = yes; then
+if test "${with_ftd2xx_linux_tardir+set}" = set
+then
+   AC_MSG_ERROR([The option: with_ftd2xx_linux_tardir is for LINUX only.])
+fi
+
+if test $build_ft2232_ftd2xx = yes ; then
+AC_MSG_CHECKING([for ftd2xx.lib exists (win32)])
+
+   # if we are given a zipdir...
+   if test "${with_ftd2xx_win32_zipdir+set}" = set
+   then
+      # Set the CFLAGS for "ftd2xx.h"
+      f=$with_ftd2xx_win32_zipdir/ftd2xx.h
+      if test ! -f $f ; then
+      	 AC_MSG_ERROR([File: $f cannot be found])
+      fi
+      CFLAGS="$CFLAGS -I$with_ftd2xx_win32_zipdir"
+
+      # And calculate the LDFLAGS for the machine
+      case "$host_cpu" in
+      i?86|x86_*)
+	LDFLAGS="$LDFLAGS -L$with_ftd2xx_win32_zipdir/i386"
+	LIBS="$LIBS -lftd2xx"
+	f=$with_ftd2xx_win32_zipdir/i386/ftd2xx.lib
+	;;
+      amd64)
+	LDFLAGS="$LDFLAGS -L$with_ftd2xx_win32_zipdir/amd64"
+	LIBS="$LIBS -lftd2xx"
+	f=$with_ftd2xx_win32_zipdir/amd64/ftd2xx.lib
+	;;
+      *)
+	AC_MSG_ERROR([Unknown Win32 host cpu: $host_cpu])
+        ;;
+       esac
+       if test ! -f $f ; then
+       	  AC_MSG_ERROR([Library: $f not found])
+       fi
+   else
+      LIBS="$LIBS -lftd2xx"
+      AC_MSG_WARN([ASSUMPTION: The (win32) FTDICHIP.COM files: ftd2xx.h and ftd2xx.lib are in a proper place])
+   fi
+fi
+fi
+
+if test $is_win32 = no; then
+
+if test "${with_ftd2xx_win32_zipdir+set}" = set
+then
+   AC_MSG_ERROR([The option: --with-ftd2xx-win32-zipdir is for win32 only])
+fi
+
+if test $build_ft2232_ftd2xx = yes ; then
+   AC_MSG_CHECKING([for libftd2xx.a (linux)])
+   # Must be linux -
+   # Cause FTDICHIP does not supply a MAC-OS version
+   if test $host_os != linux-gnu && test $host_os != linux ; then
+      AC_MSG_ERROR([The (linux) ftd2xx library from FTDICHIP.com is linux only. Try --enable-ft2232-libftdi instead])
+   fi
+   # Are we given a TAR directory?
+   if test "${with_ftd2xx_linux_tardir+set}" = set
+   then
+	# The .H file is simple..
+	f=$with_ftd2xx_linux_tardir/ftd2xx.h
+	if test ! -f $f ; then
+	   AC_MSG_ERROR([Option: --with-ftd2xx-linux-tardir appears wrong, cannot find: $f])
+	fi
+	CFLAGS="$CFLAGS -I$with_ftd2xx_linux_tardir"
+	if test $with_ftd2xx_lib = shared
+	then
+	    LDFLAGS="$LDFLAGS -L$with_ftd2xx_linux_tardir"
+	    LIBS="$LIBS -lftd2xx"
+	    AC_MSG_RESULT([ Assuming: -L$with_ftd2xx_linux_tardir -lftd2xx])
+	else
+	    # Test #1 - Future proof - if/when ftdichip fixes their distro.
+	    # Try it with the simple ".a" suffix.
+	    f=$with_ftd2xx_linux_tardir/static_lib/libftd2xx.a
+	    if test -f $f ; then
+	       # Yea we are done
+	       LDFLAGS="$LDFLAGS -L$with_ftd2xx_linux_tardir/static_lib"
+	       LIBS="$LIBS -lftd2xx"
+            else
+	       # Test Number2.
+	       # Grr.. perhaps it exists as a version number?
+	       f="$with_ftd2xx_linux_tardir/static_lib/libftd2xx.a.*.*.*"
+	       count=`ls $f | wc -l`
+	       if test $count -gt 1 ; then
+	          AC_MSG_ERROR([Multiple libftd2xx.a files found in: $with_ftd2xx_linux_tardir/static_lib sorry cannot handle this yet])
+	       fi
+	       if test $count -ne 1 ; then
+	          AC_MSG_ERROR([Not found: $f, option: --with-ftd2xx-linux-tardir appears to be wrong])
+	       fi
+	       # Because the "-l" rules do not understand version numbers...
+	       # we will just stuff the absolute path onto the LIBS variable
+	       f=`ls $f`
+	       #
+	       LIBS="$LIBS $f -lpthread"
+	       # No need to bother with LDFLAGS...
+	    fi
+	    AC_MSG_RESULT([Found: $f])
+        fi
+   else
+	LIBS="$LIBS -lftd2xx"
+	AC_MSG_RESULT([Assumed: installed])
+	AC_MSG_WARN([The (linux) FTDICHIP.COM files ftd2xx.h and libftd2xx.so are assumed to be in a proper place])
+   fi
+fi
+fi
+
+if test $build_ft2232_ftd2xx = yes; then
+
+# Before we go any further - make sure we can *BUILD* and *RUN*
+# a simple app with the "ftd2xx.lib" file - in what ever form we where given
+# We should be able to compile, link and run this test program now
+  AC_MSG_CHECKING([Test: Build & Link with ftd2xx])
+
+#
+# Save the LDFLAGS for later..
+LDFLAGS_SAVE=$LDFLAGS
+CFLAGS_SAVE=$CFLAGS
+_LDFLAGS=`eval echo $LDFLAGS`
+_CFLAGS=`eval echo $CFLAGS`
+LDFLAGS=$_LDFLAGS
+CFLAGS=$_CFLAGS
+  AC_RUN_IFELSE(
+[
+#include "confdefs.h"
+#if IS_WIN32
+#include "windows.h"
+#endif
+#include <stdio.h>
+#include <ftd2xx.h>
+
+int
+main( int argc, char **argv )
+{
+	DWORD x;
+	FT_GetLibraryVersion( &x );
+	return 0;
+}
+], [ AC_MSG_RESULT([Success!])] , [ AC_MSG_ERROR([Cannot build & run test program using ftd2xx.lib]) ] )
+LDFLAGS=$LDFLAGS_SAVE
+CFLAGS=$CFLAGS_SAVE
+fi
+
+if test $build_ft2232_libftdi = yes ; then
+   # We assume: the package is preinstalled in the proper place
+   # these present as 2 libraries..
+   LIBS="$LIBS -lftdi -lusb"
+   # 
+   # Try to build a small program.
+   AC_MSG_CHECKING([Build & Link with libftdi...])
+
+LDFLAGS_SAVE=$LDFLAGS
+CFLAGS_SAVE=$CFLAGS
+_LDFLAGS=`eval echo $LDFLAGS`
+_CFLAGS=`eval echo $CFLAGS`
+LDFLAGS=$_LDFLAGS
+CFLAGS=$_CFLAGS
+
+   AC_RUN_IFELSE(
+[
+#include <stdio.h>
+#include <ftdi.h>
+
+int
+main( int argc, char **argv )
+{
+	struct ftdi_context *p;
+	p = ftdi_new();
+	if( p != NULL ){
+	    return 0;
+	} else {
+	    fprintf( stderr, "calling ftdi_new() failed\n");
+	    return 1;
+        }
+}
+]
+, 
+[ AC_MSG_RESULT([Success]) ]
+, 
+[ AC_MSG_ERROR([Cannot build & run test program using libftdi]) ] )
+# Restore the 'unexpanded ldflags'
+LDFLAGS=$LDFLAGS_SAVE
+CFLAGS=$CFLAGS_SAVE
+fi
+
+AM_CONFIG_HEADER(config.h)
+AM_INIT_AUTOMAKE(openocd, 1.0)
+
+AM_CONDITIONAL(RELEASE, test $build_release = yes)
+AM_CONDITIONAL(PARPORT, test $build_parport = yes)
+AM_CONDITIONAL(DUMMY, test $build_dummy = yes)
+AM_CONDITIONAL(GIVEIO, test $parport_use_giveio = yes)
+AM_CONDITIONAL(EP93XX, test $build_ep93xx = yes)
+AM_CONDITIONAL(ECOSBOARD, test $build_ecosboard = yes)
+AM_CONDITIONAL(IOUTIL, test $build_ioutil = yes)
+AM_CONDITIONAL(HTTPD, test $build_httpd = yes)
+AM_CONDITIONAL(AT91RM9200, test $build_at91rm9200 = yes)
+AM_CONDITIONAL(BITBANG, test $build_bitbang = yes)
+AM_CONDITIONAL(FT2232_LIBFTDI, test $build_ft2232_libftdi = yes)
+AM_CONDITIONAL(FT2232_FTD2XX, test $build_ft2232_ftd2xx = yes)
+AM_CONDITIONAL(AMTJTAGACCEL, test $build_amtjtagaccel = yes)
+AM_CONDITIONAL(GW16012, test $build_gw16012 = yes)
+AM_CONDITIONAL(PRESTO_LIBFTDI, test $build_presto_libftdi = yes)
+AM_CONDITIONAL(PRESTO_FTD2XX, test $build_presto_ftd2xx = yes)
+AM_CONDITIONAL(USBPROG, test $build_usbprog = yes)
+AM_CONDITIONAL(OOCD_TRACE, test $build_oocd_trace = yes)
+AM_CONDITIONAL(JLINK, test $build_jlink = yes)
+AM_CONDITIONAL(VSLLINK, test $build_vsllink = yes)
+AM_CONDITIONAL(RLINK, test $build_rlink = yes)
+AM_CONDITIONAL(ARMJTAGEW, test $build_armjtagew = yes)
+AM_CONDITIONAL(IS_CYGWIN, test $is_cygwin = yes)
+AM_CONDITIONAL(IS_MINGW, test $is_mingw = yes)
+AM_CONDITIONAL(IS_WIN32, test $is_win32 = yes)
+AM_CONDITIONAL(BITQ, test $build_bitq = yes)
+
+AC_LANG_C
+AC_PROG_CC
+AC_PROG_RANLIB
+
+# set default gcc warnings
+GCC_WARNINGS="-Wall -Wstrict-prototypes"
+
+# overide default gcc cflags
+if test $gcc_warnings = yes; then
+	CFLAGS="$CFLAGS $GCC_WARNINGS"
+fi
+
+# Setup for compiling build tools
+AC_MSG_CHECKING([for a C compiler for build tools])
+if test $cross_compiling = yes; then
+	AC_CHECK_PROGS(CC_FOR_BUILD, gcc cc)
+	CFLAGS_FOR_BUILD="-g -O2 $GCC_WARNINGS"
+else
+	CC_FOR_BUILD=$CC
+	CFLAGS_FOR_BUILD=$CFLAGS
+fi
+
+AC_MSG_RESULT([$CC_FOR_BUILD])
+AC_SUBST(CC_FOR_BUILD)
+AC_SUBST(CFLAGS_FOR_BUILD)
+
+AC_MSG_CHECKING([for suffix of executable build tools])
+if test $cross_compiling = yes; then
+	cat >conftest.c <<\_______EOF
+int main ()
+{
+	exit (0);
+}
+_______EOF
+for i in .exe ""; do
+    compile="$CC_FOR_BUILD conftest.c -o conftest$i"
+    if AC_TRY_EVAL(compile); then
+		if (./conftest) 2>&AC_FD_CC; then
+			EXEEXT_FOR_BUILD=$i
+			break
+			fi
+		fi
+done
+	rm -f conftest*
+	if test "${EXEEXT_FOR_BUILD+set}" != set; then
+		AC_MSG_ERROR([Cannot determine suffix of executable build tools])
+	fi
+else
+	EXEEXT_FOR_BUILD=$EXEEXT
+fi
+AC_MSG_RESULT([$EXEEXT_FOR_BUILD])
+AC_SUBST(EXEEXT_FOR_BUILD)
+
+AC_OUTPUT(Makefile src/Makefile src/helper/Makefile src/jtag/Makefile src/xsvf/Makefile src/svf/Makefile src/target/Makefile src/server/Makefile src/flash/Makefile src/pld/Makefile doc/Makefile)
