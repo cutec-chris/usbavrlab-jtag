@@ -83,7 +83,11 @@ else
 if VSLLINK
 LIBUSB = -lusb
 else
+if USBVLAB
+LIBUSB = -lusb
+else
 LIBUSB =
+endif
 endif
 endif
 endif
