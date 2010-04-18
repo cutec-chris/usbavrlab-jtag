@@ -91,6 +91,9 @@ extern struct jtag_interface rlink_interface;
 #if BUILD_ARMJTAGEW == 1
 extern struct jtag_interface armjtagew_interface;
 #endif
+#if BUILD_USBVLAB == 1
+extern struct jtag_interface usbvlab_interface;
+#endif
 #endif // standard drivers
 
 /**
@@ -150,6 +153,9 @@ struct jtag_interface *jtag_interfaces[] = {
 #endif
 #if BUILD_ARMJTAGEW == 1
 		&armjtagew_interface,
+#endif
+#if BUILD_USBVLAB == 1
+    &usbvlab_interface,
 #endif
 #endif // standard drivers
 		NULL,
