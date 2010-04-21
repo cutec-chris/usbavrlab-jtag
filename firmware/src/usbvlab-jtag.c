@@ -42,7 +42,7 @@ usbMsgLen_t usbFunctionSetup(uint8_t data[8])
   usbMsgLen_t len = 0;
   usbRequest_t *rq = (void *)data;
   if(data[1] == FUNC_GET_TYPE) {
-	  replyBuffer[0] = 6;
+	  replyBuffer[0] = 12;
 	  len = 1;
     usbMsgPtr = replyBuffer;
 	}
