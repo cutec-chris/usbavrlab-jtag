@@ -42,34 +42,34 @@
 #define VID 0x16C0
 #define PID 0x05DC
 
-#define USBVLAB_WRITE_ENDPOINT   0x02
-#define USBVLAB_READ_ENDPOINT    0x81
+#define USBAVRLAB_WRITE_ENDPOINT   0x02
+#define USBAVRLAB_READ_ENDPOINT    0x81
 
-static unsigned int usbvlab_hw_jtag_version = 1;
+static unsigned int usbavrlab_hw_jtag_version = 1;
 
-#define USBVLAB_USB_TIMEOUT      1000
+#define USBAVRLAB_USB_TIMEOUT      1000
 
-#define USBVLAB_USB_BUFFER_SIZE  360
-#define USBVLAB_IN_BUFFER_SIZE   (USBVLAB_USB_BUFFER_SIZE)
-#define USBVLAB_OUT_BUFFER_SIZE  (USBVLAB_USB_BUFFER_SIZE)
+#define USBAVRLAB_USB_BUFFER_SIZE  360
+#define USBAVRLAB_IN_BUFFER_SIZE   (USBAVRLAB_USB_BUFFER_SIZE)
+#define USBAVRLAB_OUT_BUFFER_SIZE  (USBAVRLAB_USB_BUFFER_SIZE)
 
 /* Global USB buffers */
-static uint8_t usb_in_buffer[USBVLAB_IN_BUFFER_SIZE];
-static uint8_t usb_out_buffer[USBVLAB_OUT_BUFFER_SIZE];
+static uint8_t usb_in_buffer[USBAVRLAB_IN_BUFFER_SIZE];
+static uint8_t usb_out_buffer[USBAVRLAB_OUT_BUFFER_SIZE];
 
 /* Constants for USBVLAB command */
 
-#define USBVLAB_MAX_SPEED 				66
-#define USBVLAB_MAX_TAP_TRANSMIT 350  //even number is easier to handle
-#define USBVLAB_MAX_INPUT_DATA   (USBVLAB_MAX_TAP_TRANSMIT*4)
+#define USBAVRLAB_MAX_SPEED 				66
+#define USBAVRLAB_MAX_TAP_TRANSMIT 350  //even number is easier to handle
+#define USBAVRLAB_MAX_INPUT_DATA   (USBAVRLAB_MAX_TAP_TRANSMIT*4)
 
-#define USBVLAB_TAP_BUFFER_SIZE 65536
+#define USBAVRLAB_TAP_BUFFER_SIZE 65536
 
 #define FUNC_START_BOOTLOADER 30
 #define FUNC_WRITE_DATA       0x50
 #define FUNC_READ_DATA        0x51
 
-#define MAX_PENDING_SCAN_RESULTS (USBVLAB_MAX_INPUT_DATA)
+#define MAX_PENDING_SCAN_RESULTS (USBAVRLAB_MAX_INPUT_DATA)
 
 //JTAG usb commans
 #define JTAG_CMD_TAP_OUTPUT     0x0
@@ -81,79 +81,79 @@ static uint8_t usb_out_buffer[USBVLAB_OUT_BUFFER_SIZE];
 #define JTAG_CMD_SET_SRST_TRST  0x6
 
 /* External interface functions */
-static int usbvlab_execute_queue(void);
-static int usbvlab_speed(int speed);
-static int usbvlab_speed_div(int speed, int *khz);
-static int usbvlab_khz(int khz, int *jtag_speed);
-static int usbvlab_init(void);
-static int usbvlab_quit(void);
+static int usbavrlab_execute_queue(void);
+static int usbavrlab_speed(int speed);
+static int usbavrlab_speed_div(int speed, int *khz);
+static int usbavrlab_khz(int khz, int *jtag_speed);
+static int usbavrlab_init(void);
+static int usbavrlab_quit(void);
 
 /* Queue command functions */
-static void usbvlab_end_state(tap_state_t state);
-static void usbvlab_state_move(void);
-static void usbvlab_path_move(int num_states, tap_state_t *path);
-static void usbvlab_runtest(int num_cycles);
-static void usbvlab_scan(int ir_scan, enum scan_type type, uint8_t *buffer, int scan_size, struct scan_command *command);
-static void usbvlab_reset(int trst, int srst);
-static void usbvlab_simple_command(uint8_t command,uint8_t _data);
-static int usbvlab_get_status(void);
+static void usbavrlab_end_state(tap_state_t state);
+static void usbavrlab_state_move(void);
+static void usbavrlab_path_move(int num_states, tap_state_t *path);
+static void usbavrlab_runtest(int num_cycles);
+static void usbavrlab_scan(int ir_scan, enum scan_type type, uint8_t *buffer, int scan_size, struct scan_command *command);
+static void usbavrlab_reset(int trst, int srst);
+static void usbavrlab_simple_command(uint8_t command,uint8_t _data);
+static int usbavrlab_get_status(void);
 
 /* USBVLab tap buffer functions */
-static void usbvlab_tap_init(void);
-static int  usbvlab_tap_execute(void);
-static void usbvlab_tap_ensure_space(int scans, int bits);
-static void usbvlab_tap_append_step(int tms, int tdi);
-static void usbvlab_tap_append_scan(int length, uint8_t *buffer, struct scan_command *command);
+static void usbavrlab_tap_init(void);
+static int  usbavrlab_tap_execute(void);
+static void usbavrlab_tap_ensure_space(int scans, int bits);
+static void usbavrlab_tap_append_step(int tms, int tdi);
+static void usbavrlab_tap_append_scan(int length, uint8_t *buffer, struct scan_command *command);
 
 /* usbvlab lowlevel functions */
-struct usbvlab_jtag
+struct usbavrlab_jtag
 {
 	struct usb_dev_handle* usb_handle;
 };
 
-static struct usbvlab_jtag *usbvlab_usb_open(void);
-static void usbvlab_usb_close(struct usbvlab_jtag *usbvlab_jtag);
-static int usbvlab_usb_message(struct usbvlab_jtag *usbvlab_jtag, int out_length, int in_length);
-static int usbvlab_usb_write(struct usbvlab_jtag *usbvlab_jtag, int out_length);
-static int usbvlab_usb_read(struct usbvlab_jtag *usbvlab_jtag);
-//static int usbvlab_usb_read_emu_result(struct usbvlab_jtag *usbvlab_jtag);
+static struct usbavrlab_jtag *usbavrlab_usb_open(void);
+static void usbavrlab_usb_close(struct usbavrlab_jtag *usbavrlab_jtag);
+static int usbavrlab_usb_message(struct usbavrlab_jtag *usbavrlab_jtag, int out_length, int in_length);
+static int usbavrlab_usb_write(struct usbavrlab_jtag *usbavrlab_jtag, int out_length);
+static int usbavrlab_usb_read(struct usbavrlab_jtag *usbavrlab_jtag);
+//static int usbavrlab_usb_read_emu_result(struct usbavrlab_jtag *usbavrlab_jtag);
 
 /* helper functions */
-int usbvlab_get_version_info(void);
+int usbavrlab_get_version_info(void);
 
 #ifdef _DEBUG_USB_COMMS_
 char time_str[50];
-static void usbvlab_debug_buffer(uint8_t *buffer, int length);
-char *usbvlab_get_time(char *);
+static void usbavrlab_debug_buffer(uint8_t *buffer, int length);
+char *usbavrlab_get_time(char *);
 #endif
 
-static struct usbvlab_jtag* usbvlab_jtag_handle;
+static struct usbavrlab_jtag* usbavrlab_jtag_handle;
 
 /***************************************************************************/
 /* External interface implementation */
 
-COMMAND_HANDLER(usbvlab_handle_usbvlab_info_command)
+COMMAND_HANDLER(usbavrlab_handle_usbavrlab_info_command)
 {
-	if (usbvlab_get_version_info() == ERROR_OK)
+	if (usbavrlab_get_version_info() == ERROR_OK)
 	{
 		/* attempt to get status */
-		usbvlab_get_status();
+		usbavrlab_get_status();
 	}
 
 	return ERROR_OK;
 }
 
-COMMAND_HANDLER(usbvlab_handle_usbvlab_hw_jtag_command)
+COMMAND_HANDLER(usbavrlab_handle_usbavrlab_hw_jtag_command)
 {
 	switch (CMD_ARGC) {
 	case 0:
-		command_print(CMD_CTX, "usbvlab hw jtag  %i", usbvlab_hw_jtag_version);
+		command_print(CMD_CTX, "usbvlab hw jtag  %i", usbavrlab_hw_jtag_version);
 		break;
 	case 1: {
 		int request_version = atoi(CMD_ARGV[0]);
 		switch (request_version) {
 		case 2: case 3:
-			usbvlab_hw_jtag_version = request_version;
+			usbavrlab_hw_jtag_version = request_version;
 			break;
 		default:
 			return ERROR_COMMAND_SYNTAX_ERROR;
@@ -167,16 +167,16 @@ COMMAND_HANDLER(usbvlab_handle_usbvlab_hw_jtag_command)
 	return ERROR_OK;
 }
 
-static const struct command_registration usbvlab_command_handlers[] = {
+static const struct command_registration usbavrlab_command_handlers[] = {
 	{
-		.name = "usbvlab_info",
-		.handler = &usbvlab_handle_usbvlab_info_command,
+		.name = "usbavrlab_info",
+		.handler = &usbavrlab_handle_usbavrlab_info_command,
 		.mode = COMMAND_EXEC,
 		.help = "show usbvlab info",
 	},
 	{
-		.name = "usbvlab_hw_jtag",
-		.handler = &usbvlab_handle_usbvlab_hw_jtag_command,
+		.name = "usbavrlab_hw_jtag",
+		.handler = &usbavrlab_handle_usbavrlab_hw_jtag_command,
 		.mode = COMMAND_EXEC,
 		.help = "access USBVLab HW JTAG command version",
 		.usage = "[2|3]",
@@ -184,19 +184,19 @@ static const struct command_registration usbvlab_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-struct jtag_interface usbvlab_interface = 
+struct jtag_interface usbavrlab_interface = 
 {
 	.name = "usbvlab",
-	.commands = usbvlab_command_handlers,
-	.execute_queue = usbvlab_execute_queue,
-	.speed = usbvlab_speed,
-	.speed_div = usbvlab_speed_div,
-	.khz = usbvlab_khz,
-	.init = usbvlab_init,
-	.quit = usbvlab_quit,
+	.commands = usbavrlab_command_handlers,
+	.execute_queue = usbavrlab_execute_queue,
+	.speed = usbavrlab_speed,
+	.speed_div = usbavrlab_speed_div,
+	.khz = usbavrlab_khz,
+	.init = usbavrlab_init,
+	.quit = usbavrlab_quit,
 };
 
-static int usbvlab_execute_queue(void)
+static int usbavrlab_execute_queue(void)
 {
 	struct jtag_command *cmd = jtag_command_queue;
 	int scan_size;
@@ -213,9 +213,9 @@ static int usbvlab_execute_queue(void)
 
 				if (cmd->cmd.runtest->end_state != -1)
 				{
-					usbvlab_end_state(cmd->cmd.runtest->end_state);
+					usbavrlab_end_state(cmd->cmd.runtest->end_state);
 				}
-				usbvlab_runtest(cmd->cmd.runtest->num_cycles);
+				usbavrlab_runtest(cmd->cmd.runtest->num_cycles);
 				break;
 
 			case JTAG_STATEMOVE:
@@ -223,9 +223,9 @@ static int usbvlab_execute_queue(void)
 
 				if (cmd->cmd.statemove->end_state != -1)
 				{
-					usbvlab_end_state(cmd->cmd.statemove->end_state);
+					usbavrlab_end_state(cmd->cmd.statemove->end_state);
 				}
-				usbvlab_state_move();
+				usbavrlab_state_move();
 				break;
 
 			case JTAG_PATHMOVE:
@@ -233,7 +233,7 @@ static int usbvlab_execute_queue(void)
 					cmd->cmd.pathmove->num_states, \
 					cmd->cmd.pathmove->path[cmd->cmd.pathmove->num_states - 1]);
 
-				usbvlab_path_move(cmd->cmd.pathmove->num_states, cmd->cmd.pathmove->path);
+				usbavrlab_path_move(cmd->cmd.pathmove->num_states, cmd->cmd.pathmove->path);
 				break;
 
 			case JTAG_SCAN:
@@ -241,34 +241,34 @@ static int usbvlab_execute_queue(void)
 
 				if (cmd->cmd.scan->end_state != -1)
 				{
-					usbvlab_end_state(cmd->cmd.scan->end_state);
+					usbavrlab_end_state(cmd->cmd.scan->end_state);
 				}
 
 				scan_size = jtag_build_buffer(cmd->cmd.scan, &buffer);
 				DEBUG_JTAG_IO("scan input, length = %d", scan_size);
 
 #ifdef _DEBUG_USB_COMMS_
-				usbvlab_debug_buffer(buffer, (scan_size + 7) / 8);
+				usbavrlab_debug_buffer(buffer, (scan_size + 7) / 8);
 #endif
 				type = jtag_scan_type(cmd->cmd.scan);
-				usbvlab_scan(cmd->cmd.scan->ir_scan, type, buffer, scan_size, cmd->cmd.scan);
+				usbavrlab_scan(cmd->cmd.scan->ir_scan, type, buffer, scan_size, cmd->cmd.scan);
 				break;
 
 			case JTAG_RESET:
 				DEBUG_JTAG_IO("reset trst: %i srst %i", cmd->cmd.reset->trst, cmd->cmd.reset->srst);
 
-				usbvlab_tap_execute();
+				usbavrlab_tap_execute();
 
 				if (cmd->cmd.reset->trst == 1)
 				{
 					tap_set_state(TAP_RESET);
 				}
-				usbvlab_reset(cmd->cmd.reset->trst, cmd->cmd.reset->srst);
+				usbavrlab_reset(cmd->cmd.reset->trst, cmd->cmd.reset->srst);
 				break;
 
 			case JTAG_SLEEP:
 				DEBUG_JTAG_IO("sleep %i", cmd->cmd.sleep->us);
-				usbvlab_tap_execute();
+				usbavrlab_tap_execute();
 				jtag_sleep(cmd->cmd.sleep->us);
 				break;
 
@@ -278,34 +278,34 @@ static int usbvlab_execute_queue(void)
 		}
 		cmd = cmd->next;
 	}
-	return usbvlab_tap_execute();
+	return usbavrlab_tap_execute();
 }
 
 /* Sets speed in kHz. */
-static int usbvlab_speed(int speed)
+static int usbavrlab_speed(int speed)
 {
   
-	if (speed <= USBVLAB_MAX_SPEED)
+	if (speed <= USBAVRLAB_MAX_SPEED)
 	{
     //one day...
     return ERROR_OK;
 	}
 	else
 	{
-		LOG_INFO("Requested speed %dkHz exceeds maximum of %dkHz, ignored", speed, USBVLAB_MAX_SPEED);
+		LOG_INFO("Requested speed %dkHz exceeds maximum of %dkHz, ignored", speed, USBAVRLAB_MAX_SPEED);
 	}
 
 	return ERROR_OK;
 }
 
-static int usbvlab_speed_div(int speed, int* khz)
+static int usbavrlab_speed_div(int speed, int* khz)
 {
 	*khz = speed;
 
 	return ERROR_OK;
 }
 
-static int usbvlab_khz(int khz, int *jtag_speed)
+static int usbavrlab_khz(int khz, int *jtag_speed)
 {
 	*jtag_speed = khz;
   //TODO: convert this into delay value for usbvlab
@@ -313,13 +313,13 @@ static int usbvlab_khz(int khz, int *jtag_speed)
 	return ERROR_OK;
 }
 
-static int usbvlab_init(void)
+static int usbavrlab_init(void)
 {
 	int check_cnt;
 
-	usbvlab_jtag_handle = usbvlab_usb_open();
+	usbavrlab_jtag_handle = usbavrlab_usb_open();
 
-	if (usbvlab_jtag_handle == 0)
+	if (usbavrlab_jtag_handle == 0)
 	{
 		LOG_ERROR("Cannot find USBVLab Interface! Please check connection and permissions.");
 		return ERROR_JTAG_INIT_FAILED;
@@ -327,15 +327,15 @@ static int usbvlab_init(void)
   
   //reset the board
   
-  //usb_control_msg(usbvlab_jtag_handle, (REQDIR_DEVICETOHOST | REQTYPE_VENDOR | REQTYPE_STANDARD), 1, 0, 0, &dummy, 1, USBVLAB_USB_TIMEOUT);
+  //usb_control_msg(usbavrlab_jtag_handle, (REQDIR_DEVICETOHOST | REQTYPE_VENDOR | REQTYPE_STANDARD), 1, 0, 0, &dummy, 1, USBAVRLAB_USB_TIMEOUT);
 	
 	check_cnt = 0;
 	while (check_cnt < 3)
 	{
-		if (usbvlab_get_version_info() == ERROR_OK)
+		if (usbavrlab_get_version_info() == ERROR_OK)
 		{
 			/* attempt to get status */
-			usbvlab_get_status();
+			usbavrlab_get_status();
 			break;
 		}
 
@@ -344,24 +344,24 @@ static int usbvlab_init(void)
 
 	LOG_INFO("USBVLab JTAG Interface ready");
 
-	usbvlab_reset(0, 0);
-	usbvlab_tap_init();
-	//usbvlab_simple_command ( JTAG_CMD_SET_DELAY, 255);
+	usbavrlab_reset(0, 0);
+	usbavrlab_tap_init();
+	//usbavrlab_simple_command ( JTAG_CMD_SET_DELAY, 255);
 
 
 	return ERROR_OK;
 }
 
-static int usbvlab_quit(void)
+static int usbavrlab_quit(void)
 {
-	usbvlab_usb_close(usbvlab_jtag_handle);
+	usbavrlab_usb_close(usbavrlab_jtag_handle);
 	return ERROR_OK;
 }
 
 /***************************************************************************/
 /* Queue command implementations */
 
-void usbvlab_end_state(tap_state_t state)
+void usbavrlab_end_state(tap_state_t state)
 {
 	if (tap_is_state_stable(state))
 	{
@@ -375,7 +375,7 @@ void usbvlab_end_state(tap_state_t state)
 }
 
 /* Goes to the end state. */
-void usbvlab_state_move(void)
+void usbavrlab_state_move(void)
 {
 	int i;
 	int tms = 0;
@@ -385,13 +385,13 @@ void usbvlab_state_move(void)
 	for (i = 0; i < tms_scan_bits; i++)
 	{
 		tms = (tms_scan >> i) & 1;
-		usbvlab_tap_append_step(tms, 0);
+		usbavrlab_tap_append_step(tms, 0);
 	}
 
 	tap_set_state(tap_get_end_state());
 }
 
-void usbvlab_path_move(int num_states, tap_state_t *path)
+void usbavrlab_path_move(int num_states, tap_state_t *path)
 {
 	int i;
 
@@ -399,11 +399,11 @@ void usbvlab_path_move(int num_states, tap_state_t *path)
 	{
 		if (path[i] == tap_state_transition(tap_get_state(), false))
 		{
-			usbvlab_tap_append_step(0, 0);
+			usbavrlab_tap_append_step(0, 0);
 		}
 		else if (path[i] == tap_state_transition(tap_get_state(), true))
 		{
-			usbvlab_tap_append_step(1, 0);
+			usbavrlab_tap_append_step(1, 0);
 		}
 		else
 		{
@@ -417,7 +417,7 @@ void usbvlab_path_move(int num_states, tap_state_t *path)
 	tap_set_end_state(tap_get_state());
 }
 
-void usbvlab_runtest(int num_cycles)
+void usbavrlab_runtest(int num_cycles)
 {
 	int i;
 
@@ -426,53 +426,53 @@ void usbvlab_runtest(int num_cycles)
 	/* only do a state_move when we're not already in IDLE */
 	if (tap_get_state() != TAP_IDLE)
 	{
-		usbvlab_end_state(TAP_IDLE);
-		usbvlab_state_move();
+		usbavrlab_end_state(TAP_IDLE);
+		usbavrlab_state_move();
 	}
 
 	/* execute num_cycles */
 	for (i = 0; i < num_cycles; i++)
 	{
-		usbvlab_tap_append_step(0, 0);
+		usbavrlab_tap_append_step(0, 0);
 	}
 
 	/* finish in end_state */
-	usbvlab_end_state(saved_end_state);
+	usbavrlab_end_state(saved_end_state);
 	if (tap_get_state() != tap_get_end_state())
 	{
-		usbvlab_state_move();
+		usbavrlab_state_move();
 	}
 }
 
-void usbvlab_scan(int ir_scan, enum scan_type type, uint8_t *buffer, int scan_size, struct scan_command *command)
+void usbavrlab_scan(int ir_scan, enum scan_type type, uint8_t *buffer, int scan_size, struct scan_command *command)
 {
 	tap_state_t saved_end_state;
 
-	usbvlab_tap_ensure_space(1, scan_size + 8);
+	usbavrlab_tap_ensure_space(1, scan_size + 8);
 
 	saved_end_state = tap_get_end_state();
 
 	/* Move to appropriate scan state */
-	usbvlab_end_state(ir_scan ? TAP_IRSHIFT : TAP_DRSHIFT);
+	usbavrlab_end_state(ir_scan ? TAP_IRSHIFT : TAP_DRSHIFT);
 
-	usbvlab_state_move();
-	usbvlab_end_state(saved_end_state);
+	usbavrlab_state_move();
+	usbavrlab_end_state(saved_end_state);
 
 	/* Scan */
-	usbvlab_tap_append_scan(scan_size, buffer, command);
+	usbavrlab_tap_append_scan(scan_size, buffer, command);
 
 	/* We are in Exit1, go to Pause */
-	usbvlab_tap_append_step(0, 0);
+	usbavrlab_tap_append_step(0, 0);
 
 	tap_set_state(ir_scan ? TAP_IRPAUSE : TAP_DRPAUSE);
 
 	if (tap_get_state() != tap_get_end_state())
 	{
-		usbvlab_state_move();
+		usbavrlab_state_move();
 	}
 }
 
-void usbvlab_reset(int trst, int srst)
+void usbavrlab_reset(int trst, int srst)
 {
     LOG_DEBUG("trst: %i, srst: %i", trst, srst);
   
@@ -480,28 +480,28 @@ void usbvlab_reset(int trst, int srst)
 /*
     if (srst == 0)
     {
-        usbvlab_simple_command ( JTAG_CMD_SET_SRST,1);
+        usbavrlab_simple_command ( JTAG_CMD_SET_SRST,1);
     }
     else if (srst == 1)
     {
-        usbvlab_simple_command ( JTAG_CMD_SET_SRST,0);
+        usbavrlab_simple_command ( JTAG_CMD_SET_SRST,0);
     }
 
     if (trst == 0)
     {
-        usbvlab_simple_command ( JTAG_CMD_SET_TRST,1);
+        usbavrlab_simple_command ( JTAG_CMD_SET_TRST,1);
     }
     else if (trst == 1)
     {
-        usbvlab_simple_command ( JTAG_CMD_SET_TRST,0);
+        usbavrlab_simple_command ( JTAG_CMD_SET_TRST,0);
     }*/
 
 		srst=srst?0:1;
 		trst=trst?0:2;
-		usbvlab_simple_command ( JTAG_CMD_SET_SRST_TRST,srst|trst );
+		usbavrlab_simple_command ( JTAG_CMD_SET_SRST_TRST,srst|trst );
 }
 
-void usbvlab_simple_command(uint8_t command,uint8_t _data)
+void usbavrlab_simple_command(uint8_t command,uint8_t _data)
 {
 	int result;
 
@@ -511,19 +511,19 @@ void usbvlab_simple_command(uint8_t command,uint8_t _data)
 	usb_out_buffer[2] = command;
 	usb_out_buffer[3] = _data;
 
-	result = usbvlab_usb_message(usbvlab_jtag_handle, 4, 1);
+	result = usbavrlab_usb_message(usbavrlab_jtag_handle, 4, 1);
 	if (result != 1)
 	{
 		LOG_ERROR("USBVLab command 0x%02x failed (%d)", command, result);
 	}
 }
 
-int usbvlab_get_status(void)
+int usbavrlab_get_status(void)
 {
 /*
-	usbvlab_simple_command(EMU_CMD_GET_STATE);
-	usbvlab_simple_command(EMU_CMD_GET_STATE);
-	result = usbvlab_usb_read(usbvlab_jtag_handle);
+	usbavrlab_simple_command(EMU_CMD_GET_STATE);
+	usbavrlab_simple_command(EMU_CMD_GET_STATE);
+	result = usbavrlab_usb_read(usbavrlab_jtag_handle);
 
 	if (result == 8)
 	{
@@ -546,7 +546,7 @@ int usbvlab_get_status(void)
 	return ERROR_OK;
 }
 
-int usbvlab_get_version_info(void)
+int usbavrlab_get_version_info(void)
 {
   return ERROR_OK;
 }
@@ -556,8 +556,8 @@ int usbvlab_get_version_info(void)
 
 
 static int tap_length;
-static uint8_t tms_buffer[USBVLAB_TAP_BUFFER_SIZE];
-static uint8_t tdo_buffer[USBVLAB_TAP_BUFFER_SIZE];
+static uint8_t tms_buffer[USBAVRLAB_TAP_BUFFER_SIZE];
+static uint8_t tdo_buffer[USBAVRLAB_TAP_BUFFER_SIZE];
 
 struct pending_scan_result {
 	int first;	/* First bit position in tdo_buffer to read */
@@ -571,23 +571,23 @@ static struct pending_scan_result pending_scan_results_buffer[MAX_PENDING_SCAN_R
 
 static int last_tms;
 
-void usbvlab_tap_init(void)
+void usbavrlab_tap_init(void)
 {
 	tap_length = 0;
 	pending_scan_results_length = 0;
 }
 
-void usbvlab_tap_ensure_space(int scans, int bits)
+void usbavrlab_tap_ensure_space(int scans, int bits)
 {
 	int available_scans = MAX_PENDING_SCAN_RESULTS - pending_scan_results_length;
 
 	if (scans > available_scans )
 	{
-		usbvlab_tap_execute();
+		usbavrlab_tap_execute();
 	}
 }
 
-void usbvlab_tap_append_step(int tms, int tdi)
+void usbavrlab_tap_append_step(int tms, int tdi)
 {
 	last_tms = tms;
 	unsigned char _tms=tms?1:0;
@@ -596,7 +596,7 @@ void usbvlab_tap_append_step(int tms, int tdi)
 	int index =  tap_length/4;
 	int bits  = (tap_length%4)*2;
 
-	if (tap_length < USBVLAB_TAP_BUFFER_SIZE)
+	if (tap_length < USBAVRLAB_TAP_BUFFER_SIZE)
 	{
 	    if(!bits)
 					tms_buffer[index]=0;
@@ -606,11 +606,11 @@ void usbvlab_tap_append_step(int tms, int tdi)
 	}
 	else
 	{
-		LOG_ERROR("usbvlab_tap_append_step, overflow");
+		LOG_ERROR("usbavrlab_tap_append_step, overflow");
 	}
 }
 
-void usbvlab_tap_append_scan(int length, uint8_t *buffer, struct scan_command *command)
+void usbavrlab_tap_append_scan(int length, uint8_t *buffer, struct scan_command *command)
 {
   DEBUG_JTAG_IO("append scan, length = %d", length);
 
@@ -624,14 +624,14 @@ void usbvlab_tap_append_scan(int length, uint8_t *buffer, struct scan_command *c
 
 	for (i = 0; i < length; i++)
 	{
-		usbvlab_tap_append_step((i < length-1 ? 0 : 1), (buffer[i/8] >> (i%8)) & 1);
+		usbavrlab_tap_append_step((i < length-1 ? 0 : 1), (buffer[i/8] >> (i%8)) & 1);
 	}
 	pending_scan_results_length++;
 }
 
 /* Pad and send a tap sequence to the device, and receive the answer.
  * For the purpose of padding we assume that we are in idle or pause state. */
-int usbvlab_tap_execute(void)
+int usbavrlab_tap_execute(void)
 {
 	int byte_length,byte_length_out;
 	int i,j;
@@ -642,7 +642,7 @@ int usbvlab_tap_execute(void)
 	if (tap_length > 0)
 	{
 
-	    //memset(tdo_buffer,0,USBVLAB_TAP_BUFFER_SIZE);
+	    //memset(tdo_buffer,0,USBAVRLAB_TAP_BUFFER_SIZE);
 	    //LOG_INFO("USBVLAB tap execute %d",tap_length);
 	    byte_length =     (tap_length+3)/4;
 	    byte_length_out = (tap_length+7)/8;
@@ -656,10 +656,10 @@ int usbvlab_tap_execute(void)
 	    {
 				 int recieve;
 				 int transmit=byte_length-j;
-				 if(transmit>USBVLAB_MAX_TAP_TRANSMIT)
+				 if(transmit>USBAVRLAB_MAX_TAP_TRANSMIT)
 				 {
-						 transmit=USBVLAB_MAX_TAP_TRANSMIT;
-						 recieve=(USBVLAB_MAX_TAP_TRANSMIT)/2;
+						 transmit=USBAVRLAB_MAX_TAP_TRANSMIT;
+						 recieve=(USBAVRLAB_MAX_TAP_TRANSMIT)/2;
 						 usb_out_buffer[2]=JTAG_CMD_TAP_OUTPUT;
 
 				 }  else {
@@ -668,10 +668,10 @@ int usbvlab_tap_execute(void)
 				 }
 				 *(uint16_t *)&usb_out_buffer[0]=transmit+1;
 				 memmove(usb_out_buffer+3,tms_buffer+j,transmit);
-				 result = usbvlab_usb_message(usbvlab_jtag_handle, 3 + transmit, recieve);
+				 result = usbavrlab_usb_message(usbavrlab_jtag_handle, 3 + transmit, recieve);
 				 if(result!=recieve)
 				 {
-						 LOG_ERROR("usbvlab_tap_execute, wrong result %d, expected %d", result, recieve);
+						 LOG_ERROR("usbavrlab_tap_execute, wrong result %d, expected %d", result, recieve);
 						 return ERROR_JTAG_QUEUE_FAILED;
 				 }
 		 
@@ -683,7 +683,7 @@ int usbvlab_tap_execute(void)
     result=byte_length_out;
 #ifdef _DEBUG_USB_COMMS_
     LOG_DEBUG("USBVLab tap result %d",result);
-    usbvlab_debug_buffer(tdo_buffer,result);
+    usbavrlab_debug_buffer(tdo_buffer,result);
 #endif
     //LOG_INFO("USBVLab tap execute %d",tap_length);
     for (i = 0; i < pending_scan_results_length; i++)
@@ -700,12 +700,12 @@ int usbvlab_tap_execute(void)
       DEBUG_JTAG_IO("pending scan result, length = %d", length);
 
 #ifdef _DEBUG_USB_COMMS_
-      //usbvlab_debug_buffer(buffer, byte_length_out);
+      //usbavrlab_debug_buffer(buffer, byte_length_out);
 #endif
 
       if (jtag_read_buffer(buffer, command) != ERROR_OK)
       {
-        usbvlab_tap_init();
+        usbavrlab_tap_init();
         return ERROR_JTAG_QUEUE_FAILED;
       }
 
@@ -715,7 +715,7 @@ int usbvlab_tap_execute(void)
       }
     }
 
-		usbvlab_tap_init();
+		usbavrlab_tap_init();
 	}
 
 	return ERROR_OK;
@@ -724,15 +724,15 @@ int usbvlab_tap_execute(void)
 /*****************************************************************************/
 /* USBVLab USB low-level functions */
 
-struct usbvlab_jtag* usbvlab_usb_open()
+struct usbavrlab_jtag* usbavrlab_usb_open()
 {
 	struct usb_bus *busses;
 	struct usb_bus *bus;
 	struct usb_device *dev;
 
-	struct usbvlab_jtag *result;
+	struct usbavrlab_jtag *result;
 
-	result = (struct usbvlab_jtag*) malloc(sizeof(struct usbvlab_jtag));
+	result = (struct usbavrlab_jtag*) malloc(sizeof(struct usbavrlab_jtag));
 
 	usb_init();
 	usb_find_busses();
@@ -740,7 +740,7 @@ struct usbvlab_jtag* usbvlab_usb_open()
 
 	busses = usb_get_busses();
 
-	/* find usbvlab_jtag device in usb bus */
+	/* find usbavrlab_jtag device in usb bus */
 
 	for (bus = busses; bus; bus = bus->next)
 	{
@@ -770,21 +770,21 @@ struct usbvlab_jtag* usbvlab_usb_open()
 	return NULL;
 }
 
-void usbvlab_usb_close(struct usbvlab_jtag *usbvlab_jtag)
+void usbavrlab_usb_close(struct usbavrlab_jtag *usbavrlab_jtag)
 {
-	usb_close(usbvlab_jtag->usb_handle);
-	free(usbvlab_jtag);
+	usb_close(usbavrlab_jtag->usb_handle);
+	free(usbavrlab_jtag);
 }
 
 /* Send a message and receive the reply. */
-int usbvlab_usb_message(struct usbvlab_jtag *usbvlab_jtag, int out_length, int in_length)
+int usbavrlab_usb_message(struct usbavrlab_jtag *usbavrlab_jtag, int out_length, int in_length)
 {
 	int result;
 
-	result = usbvlab_usb_write(usbvlab_jtag, out_length);
+	result = usbavrlab_usb_write(usbavrlab_jtag, out_length);
 	if (result == out_length)
 	{
-		result = usbvlab_usb_read(usbvlab_jtag);
+		result = usbavrlab_usb_read(usbavrlab_jtag);
     if (result == in_length)
     {
       return result;
@@ -803,52 +803,52 @@ int usbvlab_usb_message(struct usbvlab_jtag *usbvlab_jtag, int out_length, int i
 }
 
 /* Write data from out_buffer to USB. */
-int usbvlab_usb_write(struct usbvlab_jtag *usbvlab_jtag, int out_length)
+int usbavrlab_usb_write(struct usbavrlab_jtag *usbavrlab_jtag, int out_length)
 {
 	int result;
 
-	if (out_length > USBVLAB_OUT_BUFFER_SIZE)
+	if (out_length > USBAVRLAB_OUT_BUFFER_SIZE)
 	{
-		LOG_ERROR("usbvlab_jtag_write illegal out_length=%d (max=%d)", out_length, USBVLAB_OUT_BUFFER_SIZE);
+		LOG_ERROR("usbavrlab_jtag_write illegal out_length=%d (max=%d)", out_length, USBAVRLAB_OUT_BUFFER_SIZE);
 		return -1;
 	}
 	
 #ifdef _DEBUG_USB_COMMS_
-	LOG_DEBUG("%s: USB write begin", usbvlab_get_time(time_str));
+	LOG_DEBUG("%s: USB write begin", usbavrlab_get_time(time_str));
 #endif
-	result = usb_control_msg(usbvlab_jtag->usb_handle, 
+	result = usb_control_msg(usbavrlab_jtag->usb_handle, 
 		USB_TYPE_VENDOR | USB_RECIP_DEVICE | USB_ENDPOINT_OUT,
-		FUNC_WRITE_DATA, 0, 0, (char *) usb_out_buffer, out_length, USBVLAB_USB_TIMEOUT);
+		FUNC_WRITE_DATA, 0, 0, (char *) usb_out_buffer, out_length, USBAVRLAB_USB_TIMEOUT);
 #ifdef _DEBUG_USB_COMMS_
-	LOG_DEBUG("%s: USB write end: %d bytes", usbvlab_get_time(time_str), result);
+	LOG_DEBUG("%s: USB write end: %d bytes", usbavrlab_get_time(time_str), result);
 #endif
 
-	DEBUG_JTAG_IO("usbvlab_usb_write, out_length = %d, result = %d", out_length, result);
+	DEBUG_JTAG_IO("usbavrlab_usb_write, out_length = %d, result = %d", out_length, result);
 
 #ifdef _DEBUG_USB_COMMS_
-	//usbvlab_debug_buffer(usb_out_buffer, out_length);
+	//usbavrlab_debug_buffer(usb_out_buffer, out_length);
 #endif
 	return result;
 }
 
 /* Read data from USB into in_buffer. */
-int usbvlab_usb_read(struct usbvlab_jtag *usbvlab_jtag)
+int usbavrlab_usb_read(struct usbavrlab_jtag *usbavrlab_jtag)
 {
 	int result;
 
 #ifdef _DEBUG_USB_COMMS_
-	LOG_DEBUG("%s: USB read begin", usbvlab_get_time(time_str));
+	LOG_DEBUG("%s: USB read begin", usbavrlab_get_time(time_str));
 #endif
-	result = usb_control_msg(usbvlab_jtag->usb_handle, 
+	result = usb_control_msg(usbavrlab_jtag->usb_handle, 
 		USB_TYPE_VENDOR | USB_RECIP_DEVICE | USB_ENDPOINT_IN,
-		FUNC_READ_DATA, 0, 0, (char *) usb_in_buffer, USBVLAB_IN_BUFFER_SIZE, USBVLAB_USB_TIMEOUT);
+		FUNC_READ_DATA, 0, 0, (char *) usb_in_buffer, USBAVRLAB_IN_BUFFER_SIZE, USBAVRLAB_USB_TIMEOUT);
 #ifdef _DEBUG_USB_COMMS_  
-	LOG_DEBUG("%s: USB read end: %d bytes", usbvlab_get_time(time_str), result);
+	LOG_DEBUG("%s: USB read end: %d bytes", usbavrlab_get_time(time_str), result);
 #endif
-	DEBUG_JTAG_IO("usbvlab_usb_read, result = %d", result);
+	DEBUG_JTAG_IO("usbavrlab_usb_read, result = %d", result);
 
 #ifdef _DEBUG_USB_COMMS_
-	//usbvlab_debug_buffer(usb_in_buffer, result);
+	//usbavrlab_debug_buffer(usb_in_buffer, result);
 #endif
 	return result;
 }
@@ -856,7 +856,7 @@ int usbvlab_usb_read(struct usbvlab_jtag *usbvlab_jtag)
 //#ifdef _DEBUG_USB_COMMS_
 #define BYTES_PER_LINE  16
 
-void usbvlab_debug_buffer(uint8_t *buffer, int length)
+void usbavrlab_debug_buffer(uint8_t *buffer, int length)
 {
 	char line[81];
 	char s[4];
@@ -875,7 +875,7 @@ void usbvlab_debug_buffer(uint8_t *buffer, int length)
 	}
 }
 
-char *usbvlab_get_time(char *str)
+char *usbavrlab_get_time(char *str)
 {
 	struct timeb timebuffer;
     char *timeline;

@@ -1,4 +1,4 @@
-This is openocd.info, produced by makeinfo version 4.11 from
+This is openocd.info, produced by makeinfo version 4.13 from
 openocd.texi.
 
 INFO-DIR-SECTION Development
@@ -528,7 +528,6 @@ not detailed in this User's Guide.
 
 Then later you will invoke the OpenOCD server, with various options to
 tell it how each debug session should work.  The `--help' option shows:
-
 bash$ openocd --help
 
 --help       | -h       display this help
@@ -2578,7 +2577,6 @@ next chapter.  That only displays TAPs for CPUs which are configured as
 debugging targets.)  Here's what the scan chain might look like for a
 chip more than one TAP:
 
-
    TapName            Enabled IdCode     Expected   IrLen IrCap IrMask
 -- ------------------ ------- ---------- ---------- ----- ----- ------
  0 omap5912.dsp          Y    0x03df1d81 0x03df1d81    38 0x01  0x03
@@ -2950,7 +2948,6 @@ has a name.  That name should normally be the same as the TAP name.
 You can display the list with the `targets' (plural!) command.  This
 display often has only one CPU; here's what it might look like with
 more than one:
-
     TargetName         Type       Endian TapName            State
 --  ------------------ ---------- ------ ------------------ ------------
  0* at91rm9200.cpu     arm920t    little at91rm9200.cpu     running
@@ -6195,7 +6192,6 @@ There are three main types of return values: single value, name value
 pair list and lists.
 
 Name value pair. The proc 'foo' below returns a name/value pair list.
-
 
 
  >  set foo(me)  Duane
