@@ -1,4 +1,4 @@
-This is openocd.info, produced by makeinfo version 4.11 from
+This is openocd.info, produced by makeinfo version 4.13 from
 openocd.texi.
 
 INFO-DIR-SECTION Development
@@ -469,17 +469,17 @@ OpenOCD Concept Index
 * Menu:
 
 * about:                                 About.               (line   6)
-* adaptive clocking <1>:                 FAQ.                 (line   6)
-* adaptive clocking:                     Interface - Dongle Configuration.
+* adaptive clocking <1>:                 Interface - Dongle Configuration.
                                                               (line 401)
+* adaptive clocking:                     FAQ.                 (line   6)
 * Architecture Specific Commands:        Architecture and Core Commands.
                                                               (line   6)
 * ARM:                                   Architecture and Core Commands.
                                                               (line 258)
-* ARM semihosting <1>:                   Architecture and Core Commands.
-                                                              (line 344)
-* ARM semihosting:                       OpenOCD Project Setup.
+* ARM semihosting <1>:                   OpenOCD Project Setup.
                                                               (line 315)
+* ARM semihosting:                       Architecture and Core Commands.
+                                                              (line 344)
 * ARM11:                                 Architecture and Core Commands.
                                                               (line 574)
 * ARM7:                                  Architecture and Core Commands.
@@ -503,7 +503,7 @@ OpenOCD Concept Index
 * ARMv7:                                 Architecture and Core Commands.
                                                               (line 608)
 * at91sam3:                              Flash Commands.      (line 267)
-* autoprobe:                             TAP Declaration.     (line 334)
+* autoprobe:                             TAP Declaration.     (line 333)
 * board config file:                     Config File Guidelines.
                                                               (line 129)
 * breakpoint:                            General Commands.    (line 316)
@@ -530,8 +530,8 @@ OpenOCD Concept Index
                                                               (line   6)
 * Cortex-M3:                             Architecture and Core Commands.
                                                               (line 638)
-* CPU type:                              CPU Configuration.   (line  83)
-* CPU variant:                           CPU Configuration.   (line  83)
+* CPU type:                              CPU Configuration.   (line  82)
+* CPU variant:                           CPU Configuration.   (line  82)
 * DAP:                                   Architecture and Core Commands.
                                                               (line 611)
 * DCC:                                   Architecture and Core Commands.
@@ -541,19 +541,19 @@ OpenOCD Concept Index
 * developers:                            Developers.          (line   6)
 * directory search:                      Running.             (line   6)
 * disassemble:                           Architecture and Core Commands.
-                                                              (line 269)
+                                                              (line 639)
 * dongles:                               JTAG Hardware Dongles.
                                                               (line   6)
-* dotted name:                           TAP Declaration.     (line 101)
+* dotted name:                           TAP Declaration.     (line 100)
 * ETB:                                   Architecture and Core Commands.
                                                               (line  14)
 * ETM:                                   Architecture and Core Commands.
                                                               (line  14)
 * event, reset-init:                     Config File Guidelines.
                                                               (line 250)
-* events <1>:                            CPU Configuration.   (line 395)
-* events <2>:                            TAP Declaration.     (line 228)
-* events:                                Reset Configuration. (line 215)
+* events <1>:                            Reset Configuration. (line 215)
+* events <2>:                            TAP Declaration.     (line 227)
+* events:                                CPU Configuration.   (line 394)
 * faq:                                   FAQ.                 (line   6)
 * flash configuration:                   Flash Commands.      (line  38)
 * flash erasing:                         Flash Commands.      (line  96)
@@ -580,11 +580,11 @@ OpenOCD Concept Index
 * interface config file:                 Interface - Dongle Configuration.
                                                               (line   6)
 * JIM Tcl:                               About JIM-Tcl.       (line   6)
-* jrc:                                   TAP Declaration.     (line 269)
+* jrc:                                   TAP Declaration.     (line 268)
 * JTAG:                                  About.               (line  15)
-* JTAG autoprobe:                        TAP Declaration.     (line 334)
+* JTAG autoprobe:                        TAP Declaration.     (line 333)
 * JTAG Commands:                         JTAG Commands.       (line   6)
-* JTAG Route Controller:                 TAP Declaration.     (line 269)
+* JTAG Route Controller:                 TAP Declaration.     (line 268)
 * libdcc:                                Architecture and Core Commands.
                                                               (line 664)
 * Linux-ARM DCC support:                 Architecture and Core Commands.
@@ -602,7 +602,7 @@ OpenOCD Concept Index
 * NAND reading:                          NAND Flash Commands. (line 113)
 * NAND verification:                     NAND Flash Commands. (line 218)
 * NAND writing:                          NAND Flash Commands. (line 161)
-* object command:                        CPU Configuration.   (line 286)
+* object command:                        CPU Configuration.   (line 285)
 * PLD:                                   PLD/FPGA Commands.   (line   6)
 * port:                                  Daemon Configuration.
                                                               (line  81)
@@ -614,11 +614,11 @@ OpenOCD Concept Index
 * Reset Configuration:                   Reset Configuration. (line   6)
 * reset-init handler:                    Config File Guidelines.
                                                               (line 250)
-* RTCK <1>:                              FAQ.                 (line   6)
-* RTCK <2>:                              Interface - Dongle Configuration.
-                                                              (line 401)
-* RTCK:                                  JTAG Hardware Dongles.
+* RTCK <1>:                              JTAG Hardware Dongles.
                                                               (line   6)
+* RTCK <2>:                              FAQ.                 (line   6)
+* RTCK:                                  Interface - Dongle Configuration.
+                                                              (line 401)
 * scan chain:                            TAP Declaration.     (line  31)
 * security:                              Daemon Configuration.
                                                               (line  81)
@@ -632,25 +632,25 @@ OpenOCD Concept Index
 * TAP:                                   About.               (line  15)
 * TAP configuration:                     TAP Declaration.     (line   6)
 * TAP declaration:                       TAP Declaration.     (line   6)
-* TAP events:                            TAP Declaration.     (line 228)
-* TAP naming convention:                 TAP Declaration.     (line 132)
+* TAP events:                            TAP Declaration.     (line 227)
+* TAP naming convention:                 TAP Declaration.     (line 131)
 * TAP state names:                       JTAG Commands.       (line 145)
 * target config file:                    Config File Guidelines.
                                                               (line 314)
-* target events:                         CPU Configuration.   (line 395)
+* target events:                         CPU Configuration.   (line 394)
 * target initialization:                 General Commands.    (line  90)
-* target type:                           CPU Configuration.   (line  83)
+* target type:                           CPU Configuration.   (line  82)
 * target, current:                       CPU Configuration.   (line  18)
 * target, list:                          CPU Configuration.   (line  18)
-* Tcl:                                   Tcl Crash Course.    (line   6)
 * tcl:                                   About JIM-Tcl.       (line   6)
+* Tcl:                                   Tcl Crash Course.    (line   6)
 * Tcl Scripting API:                     Tcl Scripting API.   (line   6)
 * Tcl scripts:                           Tcl Scripting API.   (line   6)
 * TCP port:                              Daemon Configuration.
                                                               (line  81)
 * TFTP:                                  TFTP.                (line   6)
 * tracing:                               Architecture and Core Commands.
-                                                              (line  14)
+                                                              (line 664)
 * translation:                           Config File Guidelines.
                                                               (line 530)
 * USB Adapter:                           JTAG Hardware Dongles.
@@ -660,9 +660,11 @@ OpenOCD Concept Index
 * variable names:                        Config File Guidelines.
                                                               (line 216)
 * vector_catch <1>:                      Architecture and Core Commands.
-                                                              (line 378)
-* vector_catch:                          OpenOCD Project Setup.
+                                                              (line 646)
+* vector_catch <2>:                      OpenOCD Project Setup.
                                                               (line 214)
+* vector_catch:                          Architecture and Core Commands.
+                                                              (line 378)
 * vector_table:                          Architecture and Core Commands.
                                                               (line 558)
 * watchpoint:                            General Commands.    (line 316)
@@ -686,24 +688,24 @@ Command and Driver Index
  [index ]
 * Menu:
 
-* $target_name arp_examine:              CPU Configuration.   (line 312)
-* $target_name arp_halt:                 CPU Configuration.   (line 313)
-* $target_name arp_poll:                 CPU Configuration.   (line 314)
-* $target_name arp_reset:                CPU Configuration.   (line 315)
-* $target_name arp_waitstate:            CPU Configuration.   (line 316)
-* $target_name array2mem:                CPU Configuration.   (line 321)
-* $target_name cget:                     CPU Configuration.   (line 342)
-* $target_name configure:                CPU Configuration.   (line 238)
-* $target_name curstate:                 CPU Configuration.   (line 366)
-* $target_name eventlist:                CPU Configuration.   (line 370)
-* $target_name invoke-event:             CPU Configuration.   (line 374)
-* $target_name mdb:                      CPU Configuration.   (line 381)
-* $target_name mdh:                      CPU Configuration.   (line 380)
-* $target_name mdw:                      CPU Configuration.   (line 379)
-* $target_name mem2array:                CPU Configuration.   (line 322)
-* $target_name mwb:                      CPU Configuration.   (line 389)
-* $target_name mwh:                      CPU Configuration.   (line 388)
-* $target_name mww:                      CPU Configuration.   (line 387)
+* $target_name arp_examine:              CPU Configuration.   (line 311)
+* $target_name arp_halt:                 CPU Configuration.   (line 312)
+* $target_name arp_poll:                 CPU Configuration.   (line 313)
+* $target_name arp_reset:                CPU Configuration.   (line 314)
+* $target_name arp_waitstate:            CPU Configuration.   (line 315)
+* $target_name array2mem:                CPU Configuration.   (line 320)
+* $target_name cget:                     CPU Configuration.   (line 341)
+* $target_name configure:                CPU Configuration.   (line 237)
+* $target_name curstate:                 CPU Configuration.   (line 365)
+* $target_name eventlist:                CPU Configuration.   (line 369)
+* $target_name invoke-event:             CPU Configuration.   (line 373)
+* $target_name mdb:                      CPU Configuration.   (line 380)
+* $target_name mdh:                      CPU Configuration.   (line 379)
+* $target_name mdw:                      CPU Configuration.   (line 378)
+* $target_name mem2array:                CPU Configuration.   (line 321)
+* $target_name mwb:                      CPU Configuration.   (line 388)
+* $target_name mwh:                      CPU Configuration.   (line 387)
+* $target_name mww:                      CPU Configuration.   (line 386)
 * aduc702x:                              Flash Commands.      (line 258)
 * amt_jtagaccel:                         Interface - Dongle Configuration.
                                                               (line  50)
@@ -894,15 +896,15 @@ Command and Driver Index
                                                               (line 214)
 * jtag arp_init:                         Reset Configuration. (line 265)
 * jtag arp_init-reset:                   Reset Configuration. (line 275)
-* jtag cget:                             TAP Declaration.     (line 215)
-* jtag configure:                        TAP Declaration.     (line 216)
+* jtag cget:                             TAP Declaration.     (line 214)
+* jtag configure:                        TAP Declaration.     (line 215)
 * jtag interface:                        Interface - Dongle Configuration.
                                                               (line  41)
-* jtag names:                            TAP Declaration.     (line  85)
-* jtag newtap:                           TAP Declaration.     (line 125)
-* jtag tapdisable:                       TAP Declaration.     (line 315)
-* jtag tapenable:                        TAP Declaration.     (line 320)
-* jtag tapisenabled:                     TAP Declaration.     (line 325)
+* jtag names:                            TAP Declaration.     (line  84)
+* jtag newtap:                           TAP Declaration.     (line 124)
+* jtag tapdisable:                       TAP Declaration.     (line 314)
+* jtag tapenable:                        TAP Declaration.     (line 319)
+* jtag tapisenabled:                     TAP Declaration.     (line 324)
 * jtag_init:                             Daemon Configuration.
                                                               (line  66)
 * jtag_khz:                              Interface - Dongle Configuration.
@@ -969,7 +971,7 @@ Command and Driver Index
 * parport_cable:                         Interface - Dongle Configuration.
                                                               (line 223)
 * parport_port:                          Interface - Dongle Configuration.
-                                                              (line  55)
+                                                              (line 208)
 * parport_toggling_time:                 Interface - Dongle Configuration.
                                                               (line 272)
 * parport_write_on_exit:                 Interface - Dongle Configuration.
@@ -1011,7 +1013,7 @@ Command and Driver Index
 * s3c2440:                               NAND Flash Commands. (line 357)
 * s3c2443:                               NAND Flash Commands. (line 358)
 * s3c6400:                               NAND Flash Commands. (line 359)
-* scan_chain:                            TAP Declaration.     (line  93)
+* scan_chain:                            TAP Declaration.     (line  92)
 * shutdown:                              General Commands.    (line  50)
 * sleep:                                 General Commands.    (line  44)
 * soft_reset_halt:                       General Commands.    (line 189)
@@ -1040,15 +1042,15 @@ Command and Driver Index
 * str9xpec unlock:                       Flash Commands.      (line 717)
 * svf:                                   Boundary Scan Commands.
                                                               (line  18)
-* target count:                          CPU Configuration.   (line  39)
-* target create:                         CPU Configuration.   (line 214)
-* target current:                        CPU Configuration.   (line  52)
-* target names:                          CPU Configuration.   (line  55)
-* target number:                         CPU Configuration.   (line  61)
-* target types:                          CPU Configuration.   (line 101)
+* target count:                          CPU Configuration.   (line  38)
+* target create:                         CPU Configuration.   (line 213)
+* target current:                        CPU Configuration.   (line  51)
+* target names:                          CPU Configuration.   (line  54)
+* target number:                         CPU Configuration.   (line  60)
+* target types:                          CPU Configuration.   (line 100)
 * target_request debugmsgs:              Architecture and Core Commands.
                                                               (line 705)
-* targets:                               CPU Configuration.   (line  70)
+* targets:                               CPU Configuration.   (line  69)
 * tcl_port:                              Daemon Configuration.
                                                               (line  98)
 * telnet_port:                           Daemon Configuration.
@@ -1064,7 +1066,7 @@ Command and Driver Index
                                                               (line 721)
 * trunc:                                 General Commands.    (line 239)
 * usb_blaster:                           Interface - Dongle Configuration.
-                                                              (line 173)
+                                                              (line 193)
 * usb_blaster_device_desc:               Interface - Dongle Configuration.
                                                               (line 179)
 * usb_blaster_vid_pid:                   Interface - Dongle Configuration.

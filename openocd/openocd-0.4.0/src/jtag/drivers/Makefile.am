@@ -64,8 +64,8 @@ endif
 if ARMJTAGEW
 DRIVERFILES += arm-jtag-ew.c
 endif
-if USBVLAB
-DRIVERFILES += usbvlab.c
+if USBAVRLAB
+DRIVERFILES += usbavrlab.c
 endif
 
 
